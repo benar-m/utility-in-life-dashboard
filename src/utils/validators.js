@@ -1,8 +1,8 @@
 /**
- * Client-side validation only. This gives immediate feedback in the UI,
- * but it is NOT a security boundary — a real backend must re-validate
- * (and re-hash, re-check) everything here independently. Never trust
- * client-side validation as the only line of defense.
+  Client-side validation only. This gives immediate feedback in the UI,
+  but it is NOT a security boundary  a real backend must re-validate
+  (and re-hash, re-check) everything here independently. Never trust
+  client-side validation as the only line of defense.
  */
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

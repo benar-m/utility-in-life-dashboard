@@ -43,7 +43,7 @@ export default function AdminOverview() {
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Recent activity</h2>
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
           Activity such as new registrations, payments, and attendance updates will
-          appear here once the platform is connected to live data.
+          appear here once the platform is connected to live data on the backend.
         </div>
       </section>
     </div>

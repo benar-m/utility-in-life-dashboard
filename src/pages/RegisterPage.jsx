@@ -5,20 +5,18 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { ROLES, roleDisplayNames } from "../config/navigation.js";
 import { isValidEmail, isValidPassword, MIN_PASSWORD_LENGTH } from "../utils/validators.js";
 
-/**
- * DEMO REGISTRATION ONLY.
- * This validates the form shape (required fields, email format, password
- * length, password match) but does not create a real account anywhere —
- * see the comment on AuthContext.register for how to wire this up to a
- * real POST /auth/register endpoint.
- *
- * PRODUCTION NOTE: in the real platform, self-service registration should
- * likely be limited to the Parent/Student role (matching the design
- * deck's workflow: "Parent registers → Admin reviews"). Administrator and
- * Teacher accounts are more safely created by an existing admin (an
- * invite flow), not opened up to anyone who lands on this page. The role
- * picker below is left open for demo purposes — restrict it before
- * shipping.
+/*
+  DEMO REGISTRATION ONLY
+  This validates the form shape (required fields, email format, password
+  length, password match) but does not create a real account anywhere 
+  real POST /auth/register endpoint.
+  in the real platform, self-service registration should
+  likely be limited to the Parent/Student role (matching the design
+  deck's workflow: "Parent registers Admin reviews"). Administrator and
+  Teacher accounts are more safely created by an existing admin (an
+  invite flow), not opened up to anyone landing on the page. The role
+  picker below is left open for demo purposes should be restricted  before
+  shipping.
  */
 export default function RegisterPage() {
   const { register } = useAuth();

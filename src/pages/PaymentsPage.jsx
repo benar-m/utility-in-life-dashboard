@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 const paymentsModule = allModules.find((module) => module.id === "payments");
 
-// SECURITY NOTE: this page only ever displays payment status. The M-Pesa
+// the page only ever displays payment status. The M-Pesa
 // Daraja consumer key/secret, passkey, and callback signing must live
 // server-side only and are never sent to, or read by, this front end.
 

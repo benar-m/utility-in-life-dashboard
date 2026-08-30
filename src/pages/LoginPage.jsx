@@ -6,13 +6,13 @@ import { ROLES, roleDisplayNames } from "../config/navigation.js";
 import { isValidEmail } from "../utils/validators.js";
 
 /**
- * DEMO LOGIN ONLY.
- * Email and password are both required and validated in the UI, but
- * there is no backend yet to actually verify the password against —
- * see the comment on AuthContext.signIn for how to wire this up to a
- * real POST /auth/login endpoint. The password itself is never stored
- * anywhere, including in this component's own state, beyond the submit
- * handler below.
+  DEMO LOGIN ONLY.
+  Email and password are both required and validated in the UI, but
+  there is no backend yet to actually verify the password against 
+  see the comment on AuthContext.signIn for how to wire this up to a
+  real POST /auth/login endpoint. The password itself is never stored
+  anywhere, including in this component's own state, beyond the submit
+  handler below.
  */
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -55,8 +55,8 @@ export default function LoginPage() {
             <Sprout size={20} aria-hidden="true" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Utility in Life</p>
-            <p className="text-xs text-slate-500">Empowerment · Ops Platform</p>
+            <p className="text-sm font-semibold text-slate-900">UTILITY IN LIFE</p>
+            <p className="text-xs text-slate-500">Empowerment  Ops Platform</p>
           </div>
         </div>
 

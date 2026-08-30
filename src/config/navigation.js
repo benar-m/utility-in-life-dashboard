@@ -11,11 +11,6 @@ import {
   Settings,
 } from "lucide-react";
 
-/**
- * The three roles the platform supports. Keeping this as a single
- * exported object means the login form, AuthContext, and any role
- * badges in the UI all read from the same source.
- */
 export const ROLES = {
   ADMIN: "admin",
   TEACHER: "teacher",
@@ -28,17 +23,6 @@ export const roleDisplayNames = {
   [ROLES.PARENT_STUDENT]: "Parent / Student",
 };
 
-/**
- * Every module in the platform, tagged with which role(s) can see it.
- * A module can appear for more than one role while still showing
- * different copy per role via `labelByRole` / `descriptionByRole`
- * (falling back to the base `label`/`description` when no override
- * exists for the current role).
- *
- * This is the ONLY place module → route → role mapping is defined.
- * Sidebar, dashboard home, and route guards all read from here, so
- * they can't drift out of sync with each other.
- */
 export const allModules = [
   {
     id: "dashboard",
