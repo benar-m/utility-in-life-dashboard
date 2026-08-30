@@ -1,8 +1,11 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-
-//Grid tile linking to one dashboard module. Kept data-driven
+/**
+ * Grid tile linking to one dashboard module. Kept data-driven (see
+ * config/navigation.js) so the dashboard home and the sidebar can
+ * never list different modules.
+ */
 export default function ModuleCard({ path, label, description, icon: Icon }) {
   return (
     <Link

@@ -1,10 +1,11 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-
-  //Wraps routes that require an authenticated.The API must independently
- //re-check the user's role on every request.
- 
+/**
+ * Wraps routes that require an authenticated (and optionally a specific
+ * role of) user. Remember: this only hides UI. The API must independently
+ * re-check the user's role on every request — never trust the client.
+ */
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { currentUser, isCheckingSession } = useAuth();
   const location = useLocation();

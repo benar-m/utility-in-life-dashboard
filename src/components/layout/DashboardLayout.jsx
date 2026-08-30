@@ -3,9 +3,10 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar.jsx";
 import Topbar from "./Topbar.jsx";
 
- // Classic dashboard 
- //content rendered by the active route via <Outlet />.
-
+/**
+ * Classic dashboard shell: fixed left sidebar + top bar, with page
+ * content rendered by the active route via <Outlet />.
+ */
 export default function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 

@@ -1,5 +1,7 @@
-
- // will be connected to a ereal api
+/**
+ * Placeholder shown inside a module page before its feature is wired to
+ * a real API. Keeps every "coming soon" section visually consistent.
+ */
 export default function EmptyState({ icon: Icon, title, description, primaryActionLabel }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">

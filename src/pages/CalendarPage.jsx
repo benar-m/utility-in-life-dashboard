@@ -26,7 +26,7 @@ export default function CalendarPage() {
       <EmptyState
         icon={CalendarDays}
         title="No lessons scheduled this week"
-        description="Lessons created in the Classes module will appear here."
+        description="Lessons created in the Classes module will appear on this calendar automatically."
       />
     </div>
   );

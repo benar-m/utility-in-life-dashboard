@@ -1,7 +1,7 @@
-
-//Static skeleton rows for table-shaped placeholders. Purely decorative 
-//swap this out for real rows once a module's data source is connected.
-
+/**
+ * Static skeleton rows for table-shaped placeholders. Purely decorative —
+ * swap this out for real rows once a module's data source is connected.
+ */
 export default function TableSkeleton({ columnLabels, rowCount = 5 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">

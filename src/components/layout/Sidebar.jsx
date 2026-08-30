@@ -1,12 +1,19 @@
 import { NavLink } from "react-router-dom";
 import { LogOut, Sprout } from "lucide-react";
-import { navigationItems } from "../../config/navigation.js";
+import {
+  getModulesForRole,
+  getLabelForRole,
+  roleDisplayNames,
+} from "../../config/navigation.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-  //collapsible left sidebar: brand mark, primary navigation,and a signed-in-user footer with sign out.
- 
+/**
+ * Classic collapsible left sidebar: brand mark, primary navigation
+ * (filtered to the current user's role), and a signed-in-user footer.
+ */
 export default function Sidebar({ isOpen, onNavigate }) {
   const { currentUser, signOut } = useAuth();
+  const visibleModules = currentUser ? getModulesForRole(currentUser.role) : [];
 
   return (
     <aside
@@ -29,14 +36,14 @@ export default function Sidebar({ isOpen, onNavigate }) {
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-1">
-          {navigationItems.map((item) => {
-            const ItemIcon = item.icon;
+          {visibleModules.map((module) => {
+            const ModuleIcon = module.icon;
             return (
-              <li key={item.id}>
+              <li key={module.id}>
                 <NavLink
-                  to={item.path}
+                  to={module.path}
                   onClick={onNavigate}
-                  end={item.path === "/"}
+                  end={module.path === "/"}
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
@@ -45,8 +52,8 @@ export default function Sidebar({ isOpen, onNavigate }) {
                     }`
                   }
                 >
-                  <ItemIcon size={18} aria-hidden="true" />
-                  {item.label}
+                  <ModuleIcon size={18} aria-hidden="true" />
+                  {getLabelForRole(module, currentUser?.role)}
                 </NavLink>
               </li>
             );
@@ -63,8 +70,8 @@ export default function Sidebar({ isOpen, onNavigate }) {
             <p className="truncate text-sm font-medium text-slate-900">
               {currentUser?.fullName ?? "Guest user"}
             </p>
-            <p className="truncate text-xs capitalize text-slate-500">
-              {currentUser?.role ?? "Not signed in"}
+            <p className="truncate text-xs text-slate-500">
+              {currentUser ? roleDisplayNames[currentUser.role] : "Not signed in"}
             </p>
           </div>
           <button
