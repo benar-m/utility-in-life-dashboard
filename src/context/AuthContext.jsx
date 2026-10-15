@@ -1,43 +1,42 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-
-  //AuthContext
- // Minimal authentication/authorization for the MVP.
- 
-//back end should be implemented with security context in mind to prevent xss
- //This stores the session in localStorage so the UI has
-
+import { login, logout, refreshSession } from "../api/client.js";
 
 const AuthContext = createContext(null);
-
-const SESSION_STORAGE_KEY = "uil.session"; // demo-only
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    try {
-      const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
-      if (storedSession) {
-        setCurrentUser(JSON.parse(storedSession));
-      }
-    } catch (error) {
-      // Corrupted or inaccessible storage should not crash the app.
-      console.warn("Could not restore session:", error);
-    } finally {
-      setIsCheckingSession(false);
-    }
+    let isMounted = true;
+    refreshSession()
+      .then((user) => {
+        if (isMounted) setCurrentUser(user);
+      })
+      .catch(() => {
+        if (isMounted) setCurrentUser(null);
+      })
+      .finally(() => {
+        if (isMounted) setIsCheckingSession(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const signIn = ({ fullName, role }) => {
-    const nextUser = { fullName, role };
-    setCurrentUser(nextUser);
-    window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextUser));
+  const signIn = async ({ email, password }) => {
+    const user = await login(email, password);
+    setCurrentUser(user);
+    return user;
   };
 
-  const signOut = () => {
-    setCurrentUser(null);
-    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  const signOut = async () => {
+    try {
+      await logout();
+    } finally {
+      setCurrentUser(null);
+    }
   };
 
   const value = useMemo(

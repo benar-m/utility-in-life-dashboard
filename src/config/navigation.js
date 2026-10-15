@@ -76,3 +76,70 @@ export const navigationItems = [
     description: "Platform configuration",
   },
 ];
+
+export const teacherNavigationItems = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/teacher",
+    icon: LayoutDashboard,
+    description: "Your teaching overview",
+  },
+  {
+    id: "classes",
+    label: "My classes",
+    path: "/teacher/classes",
+    icon: BookOpenCheck,
+    description: "Rosters and meeting links",
+  },
+  {
+    id: "calendar",
+    label: "My timetable",
+    path: "/teacher/calendar",
+    icon: CalendarDays,
+    description: "Your weekly teaching schedule",
+  },
+];
+
+export const studentNavigationItems = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/student",
+    icon: LayoutDashboard,
+    description: "Your learning overview",
+  },
+  {
+    id: "classes",
+    label: "My classes",
+    path: "/student/classes",
+    icon: BookOpenCheck,
+    description: "Subjects, teachers, and balances",
+  },
+  {
+    id: "calendar",
+    label: "My timetable",
+    path: "/student/calendar",
+    icon: CalendarDays,
+    description: "Your weekly class schedule",
+  },
+  {
+    id: "payments",
+    label: "Payments",
+    path: "/student/payments",
+    icon: Wallet,
+    description: "Invoices and M-Pesa receipts",
+  },
+];
+
+export function navigationForRole(role) {
+  if (role === "TEACHER") return teacherNavigationItems;
+  if (role === "STUDENT") return studentNavigationItems;
+  return navigationItems;
+}
+
+export function dashboardPathForRole(role) {
+  if (role === "TEACHER") return "/teacher";
+  if (role === "STUDENT") return "/student";
+  return "/";
+}

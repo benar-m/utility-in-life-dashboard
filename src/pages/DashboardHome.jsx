@@ -1,25 +1,39 @@
-import { Users, Wallet, ClipboardCheck, BookOpenCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookOpenCheck, ClipboardCheck, GraduationCap, Users } from "lucide-react";
+import { apiRequest } from "../api/client.js";
+import InlineAlert from "../components/common/InlineAlert.jsx";
+import ModuleCard from "../components/common/ModuleCard.jsx";
 import PageHeader from "../components/common/PageHeader.jsx";
 import StatCard from "../components/common/StatCard.jsx";
-import ModuleCard from "../components/common/ModuleCard.jsx";
 import { navigationItems } from "../config/navigation.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
-// Placeholder metrics replace with data from the  API
-// the backend is wired up 
-const summaryStats = [
-  { id: "students", label: "Active students", value: "—", helperText: "Awaiting data", icon: Users, tone: "brand" },
-  { id: "classes", label: "Classes this week", value: "—", helperText: "Awaiting data", icon: BookOpenCheck, tone: "slate" },
-  { id: "payments", label: "Payments pending", value: "—", helperText: "Awaiting data", icon: Wallet, tone: "amber" },
-  { id: "attendance", label: "Attendance today", value: "—", helperText: "Awaiting data", icon: ClipboardCheck, tone: "brand" },
-];
-
-// Modules shown on the home grid, excluding the dashboard link itself.
 const dashboardModules = navigationItems.filter((item) => item.id !== "dashboard");
 
 export default function DashboardHome() {
   const { currentUser } = useAuth();
-  const firstName = currentUser?.fullName?.split(" ")[0] ?? "there";
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState("");
+  const firstName = currentUser?.full_name?.split(" ")[0] ?? "there";
+
+  useEffect(() => {
+    apiRequest("dashboard/summary/")
+      .then(setSummary)
+      .catch((requestError) => setError(requestError.message || "Could not load the dashboard."));
+  }, []);
+
+  const stats = [
+    { label: "Active students", value: summary?.active_students ?? "—", icon: Users, tone: "brand" },
+    { label: "Active teachers", value: summary?.active_teachers ?? "—", icon: GraduationCap, tone: "slate" },
+    { label: "Active classes", value: summary?.active_classes ?? "—", icon: BookOpenCheck, tone: "brand" },
+    {
+      label: "Attendance today",
+      value: summary?.attendance_today ?? "—",
+      helperText: "Available with lesson attendance",
+      icon: ClipboardCheck,
+      tone: "amber",
+    },
+  ];
 
   return (
     <div>
@@ -28,26 +42,22 @@ export default function DashboardHome() {
         description="Here's what's happening across the platform today."
       />
 
+      {error && <InlineAlert>{error}</InlineAlert>}
       <section aria-label="Key metrics" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {summaryStats.map((stat) => (
-          <StatCard key={stat.id} {...stat} />
-        ))}
+        {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
       </section>
 
       <section aria-label="Modules" className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Modules</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {dashboardModules.map((moduleItem) => (
-            <ModuleCard key={moduleItem.id} {...moduleItem} />
-          ))}
+          {dashboardModules.map((moduleItem) => <ModuleCard key={moduleItem.id} {...moduleItem} />)}
         </div>
       </section>
 
       <section aria-label="Recent activity" className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Recent activity</h2>
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-          Activity such as new registrations, payments, and attendance updates will
-          appear here when live data is conected.
+          Student, teacher, class, and attendance events will appear here when the audit stream is added.
         </div>
       </section>
     </div>

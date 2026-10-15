@@ -1,6 +1,12 @@
 
  // will be connected to a ereal api
-export default function EmptyState({ icon: Icon, title, description, primaryActionLabel }) {
+export default function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  primaryActionLabel,
+  onPrimaryAction,
+}) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
       {Icon && (
@@ -13,9 +19,8 @@ export default function EmptyState({ icon: Icon, title, description, primaryActi
       {primaryActionLabel && (
         <button
           type="button"
-          disabled
-          title="Available once this module is connected to the API"
-          className="mt-4 cursor-not-allowed rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-400"
+          onClick={onPrimaryAction}
+          className="mt-4 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
         >
           {primaryActionLabel}
         </button>

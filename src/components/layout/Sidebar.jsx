@@ -1,12 +1,13 @@
 import { NavLink } from "react-router-dom";
 import { LogOut, Sprout } from "lucide-react";
-import { navigationItems } from "../../config/navigation.js";
+import { navigationForRole } from "../../config/navigation.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
   //collapsible left sidebar: brand mark, primary navigation,and a signed-in-user footer with sign out.
  
 export default function Sidebar({ isOpen, onNavigate }) {
   const { currentUser, signOut } = useAuth();
+  const navigationItems = navigationForRole(currentUser?.role);
 
   return (
     <aside
@@ -57,14 +58,14 @@ export default function Sidebar({ isOpen, onNavigate }) {
       <div className="border-t border-slate-200 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
-            {getInitials(currentUser?.fullName)}
+            {getInitials(currentUser?.full_name)}
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-slate-900">
-              {currentUser?.fullName ?? "Guest user"}
+              {currentUser?.full_name ?? "Guest user"}
             </p>
             <p className="truncate text-xs capitalize text-slate-500">
-              {currentUser?.role ?? "Not signed in"}
+              {formatRole(currentUser?.role)}
             </p>
           </div>
           <button
@@ -90,4 +91,9 @@ function getInitials(fullName) {
     .slice(0, 2)
     .map((namePart) => namePart[0]?.toUpperCase())
     .join("");
+}
+
+function formatRole(role) {
+  if (!role) return "Not signed in";
+  return role.toLowerCase().replaceAll("_", " ");
 }

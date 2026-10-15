@@ -4,3 +4,18 @@ dist
 .env.local
 *.log
 .DS_Store
+
+# Python / Django backend
+backend/.venv/
+backend/.env
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.coverage
+backend/htmlcov/
+backend/db.sqlite3
+backend/staticfiles/
+backend/openapi.yaml
+__pycache__/
+*.py[cod]
+*.egg-info/
+/backend
