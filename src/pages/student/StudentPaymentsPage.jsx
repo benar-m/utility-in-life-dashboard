@@ -68,12 +68,12 @@ export default function StudentPaymentsPage() {
 
       <section className="mt-8">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700"><ReceiptText size={16} /> Receipts</h2>
-        {receipts.length === 0 ? <p className="rounded-xl border border-dashed border-slate-200 bg-white p-5 text-sm text-slate-500">Receipts appear after an M-Pesa prompt is approved.</p> : (
+        {receipts.length === 0 ? <p className="rounded-xl border border-dashed border-slate-200 bg-white p-5 text-sm text-slate-500">Receipts appear when a payment is completed or recorded by the organization.</p> : (
           <div className="grid gap-3 sm:grid-cols-2">{receipts.map((receipt) => (
             <article key={receipt.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-slate-900">{receipt.number}</p><p className="text-xs text-slate-400">Invoice {receipt.invoice_number}</p></div><StatusBadge status="CLEARED" /></div>
               <p className="mt-4 text-lg font-semibold text-brand-700">{money(receipt.amount, receipt.currency)}</p>
-              <p className="mt-1 text-xs text-slate-500">M-Pesa: {receipt.provider_reference}</p>
+              <p className="mt-1 text-xs text-slate-500">{receipt.method === "BANK" ? "Bank transfer" : receipt.method === "CASH" ? "Cash" : "M-Pesa"}: {receipt.provider_reference}</p>
             </article>
           ))}</div>
         )}

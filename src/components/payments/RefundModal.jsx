@@ -33,7 +33,7 @@ export default function RefundModal({ payment, onClose, onCompleted }) {
   };
 
   return (
-    <Modal isOpen={Boolean(payment)} onClose={onClose} title="Refund payment" description={payment ? `M-Pesa receipt ${payment.provider_reference}` : ""}>
+    <Modal isOpen={Boolean(payment)} onClose={onClose} title="Refund payment" description={payment ? `Payment reference ${payment.provider_reference}` : ""}>
       <form onSubmit={submit}>
         <div className="space-y-4 px-6 py-5">
           {error && <InlineAlert>{error}</InlineAlert>}

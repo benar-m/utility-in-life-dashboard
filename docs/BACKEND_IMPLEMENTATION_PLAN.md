@@ -42,7 +42,7 @@ The repository currently contains:
 - Student creation and teacher invitation modals, a public invitation-acceptance page, and a three-step class wizard.
 - Role-specific teacher and student portals with server-scoped classes, weekly timetables, and dashboard summaries.
 - Explicit one-to-one student login linkage issued from the admin Students page.
-- Initial billing slice: invoices, receipts, mock refunds/reconciliation, restrictions, and a PayHero STK-prompt adapter with tokenized callbacks. PayHero remains opt-in; teacher payouts, provider-side refunds, and automated reconciliation are not implemented.
+- Initial billing slice: invoices, receipts, manual cash/bank records, restrictions, and PayHero STK prompts with tokenized callbacks. Production requires PayHero; provider-side refunds and automated provider reconciliation are not implemented.
 
 This is still a deliberately narrow vertical slice across later phases, not a declaration that Phases 1, 3, 4, or 5 are complete. Campaign applications, availability/conflict checks, dated lesson sessions, the Attend action, and attendance are still outstanding in their documented phases.
 
@@ -83,7 +83,7 @@ The current login combines `parent` and `student` in one UI option. The backend 
 - Secure join action and join-event logging
 - Teacher-recorded attendance
 - Role-scoped dashboard summaries
-- Invoices, payment attempts, receipts, late-payment restrictions, mock payment/refund workflows, and optional PayHero STK prompts
+- Invoices, PayHero payment attempts, manual cash/bank payment records, receipts, and late-payment restrictions
 - Django Admin for operational fallback
 - API schema, automated tests, structured logs, and production configuration
 
@@ -954,7 +954,7 @@ Exit criteria:
 
 ### Phase 7 — Billing and teacher pay
 
-The initial billing slice is implemented separately in `apps/payments`: invoices, payment attempts, receipts, mock refunds/reconciliation, restrictions, and an optional PayHero M-Pesa STK prompt/callback. Mock remains the default. PayHero calls require credentials and a public HTTPS callback URL; see `backend/README.md` before enabling it. The remaining phase work is teacher compensation rules and payout batches, provider-side refunds, and automated provider reconciliation. Keep payment transactions in the payments app and derive enrollment balances from invoice balances rather than adding transactions to `ClassEnrollment`.
+The initial billing slice is implemented separately in `apps/payments`: invoices, PayHero M-Pesa STK prompts and callbacks, manual cash/bank receipt records, restrictions, and ledger reconciliation. Production refuses to start unless `PAYMENT_GATEWAY=payhero`; the mock adapter is confined to local development and tests. PayHero calls require credentials and a public HTTPS callback URL; see `backend/README.md`. Remaining work is provider-side refunds and automated PayHero transaction reconciliation. Keep payment transactions in the payments app and derive enrollment balances from invoice balances rather than adding transactions to `ClassEnrollment`.
 
 ## 14. Testing strategy
 

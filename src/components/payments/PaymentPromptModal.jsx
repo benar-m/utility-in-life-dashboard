@@ -79,7 +79,7 @@ export default function PaymentPromptModal({ invoice, onClose, onCompleted }) {
         <form onSubmit={sendPrompt}>
           <div className="space-y-4 px-6 py-5">
             {error && <InlineAlert>{error}</InlineAlert>}
-            <InlineAlert>This may send a real M-Pesa prompt if PayHero is enabled. Money is only collected if the prompt is approved on the phone.</InlineAlert>
+            <InlineAlert>Submitting sends a prompt through the configured gateway. In production this is PayHero; money is collected only if the prompt is approved on the phone.</InlineAlert>
             <FormField label="M-Pesa phone" htmlFor="mpesa-phone" required hint="Kenyan format, for example 0712345678.">
               <input id="mpesa-phone" inputMode="tel" required value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClassName} />
             </FormField>
@@ -100,8 +100,8 @@ export default function PaymentPromptModal({ invoice, onClose, onCompleted }) {
             {error && <InlineAlert>{error}</InlineAlert>}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
               <Smartphone className="mx-auto text-brand-600" size={30} />
-              <p className="mt-2 font-medium text-slate-900">{attempt.mock_mode ? "Mock prompt created" : "M-Pesa prompt sent"}</p>
-              <p className="mt-1 text-sm text-slate-500">{attempt.customer_message || (attempt.mock_mode ? "Choose a simulated phone response below." : "Approve the prompt on your phone. This status will update automatically.")}</p>
+              <p className="mt-2 font-medium text-slate-900">{attempt.mock_mode ? "Local test prompt created" : "M-Pesa prompt sent"}</p>
+              <p className="mt-1 text-sm text-slate-500">{attempt.customer_message || (attempt.mock_mode ? "Use the local test controls below to simulate a response." : "Approve the prompt on your phone. This status will update automatically.")}</p>
               <p className="mt-2 break-all text-xs text-slate-400">{attempt.checkout_request_id}</p>
             </div>
             {attempt.status !== "PENDING" && <InlineAlert tone={attempt.status === "SUCCEEDED" ? "success" : "error"}>Payment {attempt.status.toLowerCase()}.{attempt.result_description ? ` ${attempt.result_description}` : ""}</InlineAlert>}
@@ -109,8 +109,8 @@ export default function PaymentPromptModal({ invoice, onClose, onCompleted }) {
           <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-6 py-4">
             {attempt.status === "PENDING" && attempt.mock_mode ? (
               <>
-                <button type="button" disabled={isSubmitting} onClick={() => decide("CANCELLED")} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"><XCircle size={16} /> Fake cancel</button>
-                <button type="button" disabled={isSubmitting} onClick={() => decide("SUCCESS")} className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">{isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Fake approve</button>
+                <button type="button" disabled={isSubmitting} onClick={() => decide("CANCELLED")} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"><XCircle size={16} /> Simulate cancel</button>
+                <button type="button" disabled={isSubmitting} onClick={() => decide("SUCCESS")} className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">{isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Simulate approval</button>
               </>
             ) : <button type="button" onClick={onClose} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white">{attempt.status === "PENDING" ? "Close" : "Done"}</button>}
           </footer>

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "utility-in-life-backend"
+version = "0.1.0"
+description = "Django API for the Utility in Life academic operations platform"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "Django==5.2.17",
+    "dj-database-url==3.1.2",
+    "django-cors-headers==4.9.0",
+    "django-filter==26.1",
+    "djangorestframework==3.18.0",
+    "djangorestframework-simplejwt==5.5.1",
+    "drf-spectacular==0.30.0",
+    "gunicorn==26.2.0",
+    "psycopg[binary]==3.3.4",
+    "python-dotenv==1.2.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "factory-boy==3.3.3",
+    "pytest==9.1.1",
+    "pytest-django==4.14.0",
+    "ruff==0.16.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["apps*", "config*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
+addopts = ["--strict-config", "--strict-markers"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["B", "DJ", "E", "F", "I", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

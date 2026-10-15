@@ -15,7 +15,13 @@ backend/htmlcov/
 backend/db.sqlite3
 backend/staticfiles/
 backend/openapi.yaml
+/backend/.env.production
+/backend/.env.payhero
+/backend/*.pem
+/.env.production
+/.env.payhero
 __pycache__/
 *.py[cod]
 *.egg-info/
-/backend
+
+/deploy

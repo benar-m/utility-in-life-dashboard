@@ -1,0 +1,202 @@
+from django.conf import settings
+from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
+from rest_framework import serializers
+
+from apps.academics.models import ClassGroup
+
+from .models import EnrollmentApplication, EnrollmentCampaign
+
+
+def campaign_public_url(campaign):
+    return f"{settings.FRONTEND_URL}/enroll/{campaign.public_id}"
+
+
+class EnrollmentCampaignSerializer(serializers.ModelSerializer):
+    target_class_id = serializers.PrimaryKeyRelatedField(
+        source="target_class",
+        queryset=ClassGroup.objects.filter(status=ClassGroup.Status.ACTIVE),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+    target_class = serializers.SerializerMethodField()
+    public_url = serializers.SerializerMethodField()
+    application_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = EnrollmentCampaign
+        fields = (
+            "id",
+            "public_id",
+            "title",
+            "description",
+            "target_class_id",
+            "target_class",
+            "status",
+            "closes_at",
+            "public_url",
+            "application_count",
+            "created_at",
+        )
+        read_only_fields = ("id", "public_id", "created_at")
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_target_class(self, obj):
+        if obj.target_class is None:
+            return None
+        return {
+            "id": obj.target_class_id,
+            "name": obj.target_class.name,
+        }
+
+    @extend_schema_field(serializers.URLField())
+    def get_public_url(self, obj):
+        return campaign_public_url(obj)
+
+    def validate(self, attrs):
+        closes_at = attrs.get("closes_at")
+        if closes_at and closes_at <= timezone.now():
+            raise serializers.ValidationError({"closes_at": "Closing time must be in the future."})
+        target_class = attrs.get("target_class")
+        if (
+            target_class
+            and EnrollmentCampaign.objects.filter(
+                target_class=target_class,
+                status=EnrollmentCampaign.Status.OPEN,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {"target_class_id": "This class already has an open enrollment link."}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        return EnrollmentCampaign.objects.create(
+            created_by=self.context["request"].user,
+            **validated_data,
+        )
+
+
+class PublicCampaignSerializer(serializers.ModelSerializer):
+    target_class = serializers.SerializerMethodField()
+    accepts_applications = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EnrollmentCampaign
+        fields = (
+            "public_id",
+            "title",
+            "description",
+            "target_class",
+            "closes_at",
+            "accepts_applications",
+        )
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_target_class(self, obj):
+        if obj.target_class is None:
+            return None
+        class_group = obj.target_class
+        return {
+            "name": class_group.name,
+            "subject": class_group.subject.name,
+            "grade_level": class_group.grade_level,
+            "cost_amount": (
+                format(class_group.cost_amount, ".2f")
+                if class_group.cost_amount is not None
+                else None
+            ),
+            "currency": class_group.currency,
+        }
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_accepts_applications(self, obj):
+        return obj.status == EnrollmentCampaign.Status.OPEN and (
+            obj.closes_at is None or obj.closes_at > timezone.now()
+        )
+
+
+class PublicApplicationCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EnrollmentApplication
+        fields = (
+            "first_name",
+            "last_name",
+            "grade_level",
+            "student_email",
+            "guardian_name",
+            "guardian_email",
+            "guardian_phone",
+            "notes",
+        )
+
+    def validate(self, attrs):
+        campaign = self.context["campaign"]
+        duplicate = EnrollmentApplication.objects.filter(
+            campaign=campaign,
+            first_name__iexact=attrs["first_name"].strip(),
+            last_name__iexact=attrs["last_name"].strip(),
+            guardian_email__iexact=attrs["guardian_email"],
+            status=EnrollmentApplication.Status.PENDING,
+        ).exists()
+        if duplicate:
+            raise serializers.ValidationError(
+                "A pending application for this student already exists."
+            )
+        return attrs
+
+    def create(self, validated_data):
+        return EnrollmentApplication.objects.create(
+            campaign=self.context["campaign"],
+            **validated_data,
+        )
+
+
+class EnrollmentApplicationSerializer(serializers.ModelSerializer):
+    campaign = serializers.SerializerMethodField()
+    requested_class = serializers.SerializerMethodField()
+    student_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EnrollmentApplication
+        fields = (
+            "id",
+            "campaign",
+            "requested_class",
+            "student_name",
+            "first_name",
+            "last_name",
+            "grade_level",
+            "student_email",
+            "guardian_name",
+            "guardian_email",
+            "guardian_phone",
+            "notes",
+            "status",
+            "created_student",
+            "reviewed_at",
+            "rejection_reason",
+            "created_at",
+        )
+
+    @extend_schema_field(serializers.DictField())
+    def get_campaign(self, obj):
+        return {"id": obj.campaign_id, "title": obj.campaign.title}
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_requested_class(self, obj):
+        if obj.campaign.target_class is None:
+            return None
+        return {
+            "id": obj.campaign.target_class_id,
+            "name": obj.campaign.target_class.name,
+        }
+
+    @extend_schema_field(serializers.CharField())
+    def get_student_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
+
+
+class ApplicationRejectSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, allow_blank=True, max_length=1000)

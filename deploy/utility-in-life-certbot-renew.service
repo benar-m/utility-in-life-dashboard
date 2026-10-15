@@ -1,0 +1,8 @@
+[Unit]
+Description=Renew Utility in Life API TLS certificate
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/utility-in-life/deploy/renew-certificates.sh

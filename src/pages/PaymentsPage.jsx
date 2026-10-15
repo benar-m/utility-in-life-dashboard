@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Ban, CheckCircle2, FilePlus2, RefreshCw, RotateCcw, Smartphone, Wallet, XCircle } from "lucide-react";
+import { Banknote, Ban, CheckCircle2, FilePlus2, RefreshCw, RotateCcw, Smartphone, Wallet, XCircle } from "lucide-react";
 import { apiRequest, resultList } from "../api/client.js";
 import ActionMenu from "../components/common/ActionMenu.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
@@ -10,6 +10,7 @@ import StatusBadge from "../components/common/StatusBadge.jsx";
 import TableSkeleton from "../components/common/TableSkeleton.jsx";
 import InvoiceFormModal from "../components/payments/InvoiceFormModal.jsx";
 import PaymentPromptModal from "../components/payments/PaymentPromptModal.jsx";
+import RecordPaymentModal from "../components/payments/RecordPaymentModal.jsx";
 import RefundModal from "../components/payments/RefundModal.jsx";
 
 const invoiceColumns = ["Invoice", "Student", "Charge", "Due", "Balance", "Status", ""];
@@ -34,6 +35,7 @@ export default function PaymentsPage() {
   const [notice, setNotice] = useState("");
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [invoiceToPay, setInvoiceToPay] = useState(null);
+  const [invoiceToRecord, setInvoiceToRecord] = useState(null);
   const [paymentToRefund, setPaymentToRefund] = useState(null);
 
   const load = useCallback(async () => {
@@ -81,7 +83,7 @@ export default function PaymentsPage() {
     <div>
       <PageHeader
         title="Payments"
-        description="Invoices, M-Pesa prompts, receipts, refunds, reconciliation, and access controls."
+        description="Invoices, PayHero M-Pesa prompts, recorded cash or bank payments, receipts, reconciliation, and access controls."
         actionSlot={
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setShowInvoiceForm(true)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><FilePlus2 size={16} /> Create invoice</button>
@@ -145,7 +147,8 @@ export default function PaymentsPage() {
                     <td className="px-4 py-3"><StatusBadge status={invoice.status} /></td>
                     <td className="px-4 py-3 text-right">
                       <ActionMenu label={`Actions for ${invoice.number}`} items={[
-                        { label: "Send fake M-Pesa prompt", icon: Smartphone, disabled: ["PAID", "VOID"].includes(invoice.status), onSelect: () => setInvoiceToPay(invoice) },
+                        { label: "Send M-Pesa prompt", icon: Smartphone, disabled: ["PAID", "VOID"].includes(invoice.status), onSelect: () => setInvoiceToPay(invoice) },
+                        { label: "Record cash or bank payment", icon: Banknote, disabled: ["PAID", "VOID"].includes(invoice.status), onSelect: () => setInvoiceToRecord(invoice) },
                         { label: "Void invoice", icon: XCircle, tone: "danger", disabled: Number(invoice.amount_paid) > 0 || invoice.status === "VOID", onSelect: () => perform(() => apiRequest(`payments/invoices/${invoice.id}/void/`, { method: "POST", body: {} }), `${invoice.number} was voided.`) },
                       ]} />
                     </td>
@@ -159,19 +162,19 @@ export default function PaymentsPage() {
 
       <section className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Payments and receipts</h2>
-        {payments.length === 0 ? <p className="rounded-xl border border-dashed border-slate-200 bg-white p-5 text-sm text-slate-500">Successful mock payments will appear here.</p> : (
+        {payments.length === 0 ? <p className="rounded-xl border border-dashed border-slate-200 bg-white p-5 text-sm text-slate-500">M-Pesa, cash, and bank payments will appear here.</p> : (
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{["M-Pesa reference", "Invoice", "Student", "Amount", "Receipt", "Status", ""].map((column) => <th key={column} className="px-4 py-3 font-medium">{column}</th>)}</tr></thead>
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{["Method / reference", "Invoice", "Student", "Amount", "Receipt", "Status", ""].map((column) => <th key={column} className="px-4 py-3 font-medium">{column}</th>)}</tr></thead>
               <tbody className="divide-y divide-slate-100">{payments.map((payment) => (
                 <tr key={payment.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{payment.provider_reference}</td>
+                  <td className="px-4 py-3"><p className="font-medium text-slate-900">{payment.method === "BANK" ? "Bank transfer" : payment.method === "CASH" ? "Cash" : "M-Pesa"}</p><p className="text-xs text-slate-500">{payment.provider_reference}</p>{payment.recording_note && <p className="text-xs text-slate-400">{payment.recording_note}</p>}</td>
                   <td className="px-4 py-3 text-slate-600">{payment.invoice.number}</td>
                   <td className="px-4 py-3 text-slate-600">{payment.invoice.student.name}</td>
                   <td className="px-4 py-3 text-slate-600">{money(payment.amount, payment.currency)}{Number(payment.amount_refunded) > 0 && <p className="text-xs text-red-500">Refunded {money(payment.amount_refunded, payment.currency)}</p>}</td>
                   <td className="px-4 py-3 text-slate-600">{payment.receipt_number || "—"}</td>
                   <td className="px-4 py-3"><StatusBadge status={payment.status} /></td>
-                  <td className="px-4 py-3 text-right"><ActionMenu label={`Actions for payment ${payment.provider_reference}`} items={[{ label: payment.provider === "payhero" ? "Refund in PayHero" : "Refund", icon: RotateCcw, tone: "danger", disabled: payment.provider === "payhero" || Number(payment.refundable_amount) <= 0, onSelect: () => setPaymentToRefund(payment) }]} /></td>
+                  <td className="px-4 py-3 text-right"><ActionMenu label={`Actions for payment ${payment.provider_reference}`} items={[{ label: payment.provider === "payhero" ? "Refund in PayHero" : payment.method === "MPESA" ? "Refund" : "Manual refund not available", icon: RotateCcw, tone: "danger", disabled: payment.provider !== "mock" || Number(payment.refundable_amount) <= 0, onSelect: () => setPaymentToRefund(payment) }]} /></td>
                 </tr>
               ))}</tbody>
             </table>
@@ -181,6 +184,7 @@ export default function PaymentsPage() {
 
       <InvoiceFormModal isOpen={showInvoiceForm} students={students} onClose={() => setShowInvoiceForm(false)} onCreated={load} />
       <PaymentPromptModal invoice={invoiceToPay} onClose={() => setInvoiceToPay(null)} onCompleted={load} />
+      <RecordPaymentModal invoice={invoiceToRecord} onClose={() => setInvoiceToRecord(null)} onCompleted={load} />
       <RefundModal payment={paymentToRefund} onClose={() => setPaymentToRefund(null)} onCompleted={load} />
     </div>
   );
