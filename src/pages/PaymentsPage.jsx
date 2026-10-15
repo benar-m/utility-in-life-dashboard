@@ -83,7 +83,7 @@ export default function PaymentsPage() {
     <div>
       <PageHeader
         title="Payments"
-        description="Invoices, PayHero M-Pesa prompts, recorded cash or bank payments, receipts, reconciliation, and access controls."
+        description="Invoices, PayHero M-Pesa prompts, recorded cash or bank payments, receipts, reconciliation, and overdue restrictions."
         actionSlot={
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setShowInvoiceForm(true)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><FilePlus2 size={16} /> Create invoice</button>

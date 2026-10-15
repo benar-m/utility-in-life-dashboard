@@ -51,7 +51,7 @@ export default function RecordPaymentModal({ invoice, onClose, onCompleted }) {
               <option value="BANK">Bank transfer</option>
             </select>
           </FormField>
-          <FormField label="Amount received (KES)" htmlFor="record-payment-amount" required>
+          <FormField label={`Amount received (${invoice?.currency || "KES"})`} htmlFor="record-payment-amount" required>
             <input
               id="record-payment-amount"
               type="number"
