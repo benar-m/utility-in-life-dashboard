@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, Loader2, Sprout } from "lucide-react";
 import { dashboardPathForRole } from "../config/navigation.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -9,6 +9,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const requestedPath = location.state?.from?.pathname;
+  const requestedSearch = location.state?.from?.search || "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +21,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const user = await signIn({ email: email.trim(), password });
-      navigate(requestedPath || dashboardPathForRole(user.role), { replace: true });
+      navigate(requestedPath ? `${requestedPath}${requestedSearch}` : dashboardPathForRole(user.role), { replace: true });
     } catch (requestError) {
       setError(requestError.message || "Sign in failed.");
     } finally {
@@ -90,9 +91,10 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Use the owner account created from the backend.
+        <p className="mt-4 text-center text-sm text-slate-500">
+          Need a student account? <Link to="/register" state={location.state} className="font-semibold text-brand-700 hover:text-brand-800">Create one</Link>
         </p>
+        <Link to="/" className="mt-4 block text-center text-xs font-semibold text-slate-400 hover:text-slate-600">Back to learning hub</Link>
       </div>
     </div>
   );

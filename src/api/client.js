@@ -86,6 +86,15 @@ export async function login(email, password) {
   return payload.user;
 }
 
+export async function registerStudent(details) {
+  const payload = await authRequest("auth/register/", {
+    method: "POST",
+    body: JSON.stringify(details),
+  });
+  accessToken = payload.access;
+  return payload.user;
+}
+
 export async function refreshSession() {
   if (!refreshPromise) {
     refreshPromise = authRequest("auth/refresh/", { method: "POST", body: "{}" })

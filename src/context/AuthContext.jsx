@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { login, logout, refreshSession } from "../api/client.js";
+import { login, logout, refreshSession, registerStudent } from "../api/client.js";
 
 const AuthContext = createContext(null);
 
@@ -31,6 +31,12 @@ export function AuthProvider({ children }) {
     return user;
   };
 
+  const signUp = async (details) => {
+    const user = await registerStudent(details);
+    setCurrentUser(user);
+    return user;
+  };
+
   const signOut = async () => {
     try {
       await logout();
@@ -40,7 +46,7 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ currentUser, isCheckingSession, signIn, signOut }),
+    () => ({ currentUser, isCheckingSession, signIn, signUp, signOut }),
     [currentUser, isCheckingSession]
   );
 
