@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "apps.campaigns",
     "apps.academics",
     "apps.payments",
+    "apps.resources",
 ]
 
 MIDDLEWARE = [
@@ -156,6 +157,7 @@ REST_FRAMEWORK = {
         "auth": os.getenv("AUTH_THROTTLE_RATE", "10/min"),
         "invitation_accept": os.getenv("INVITATION_ACCEPT_THROTTLE_RATE", "20/hour"),
         "public_enrollment": os.getenv("PUBLIC_ENROLLMENT_THROTTLE_RATE", "20/hour"),
+        "public_catalog": os.getenv("PUBLIC_CATALOG_THROTTLE_RATE", "30/hour"),
     },
 }
 
