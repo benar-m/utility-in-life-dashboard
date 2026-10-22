@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.accounts.models import User
 from apps.accounts.permissions import IsOwnerOrAdmin
 
 from .models import EnrollmentApplication, EnrollmentCampaign
@@ -18,6 +19,7 @@ from .serializers import (
     EnrollmentCampaignSerializer,
     PublicApplicationCreateSerializer,
     PublicCampaignSerializer,
+    PublicSelfEnrollSerializer,
 )
 from .services import accept_application, reject_application
 
@@ -127,6 +129,97 @@ class PublicApplicationCreateView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         application = serializer.save()
+        return Response(
+            EnrollmentApplicationSerializer(application).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PublicSelfEnrollView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "public_enrollment"
+
+    @extend_schema(
+        request=PublicSelfEnrollSerializer,
+        responses={201: EnrollmentApplicationSerializer},
+    )
+    def post(self, request):
+        serializer = PublicSelfEnrollSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        class_group = data.pop("class_group", None)
+        service = data.pop("service")
+        contact_email = data.pop("contact_email")
+        contact_phone = data.pop("contact_phone", "")
+        preferred_times = data.pop("preferred_times", "")
+        notes = data.pop("notes", "")
+
+        owner = User.objects.filter(
+            role__in=(User.Role.OWNER, User.Role.ADMIN),
+            is_active=True,
+        ).order_by("id").first()
+        if owner is None:
+            return Response(
+                {"detail": "Enrollment is not available yet. Please try again shortly."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if class_group:
+            campaign, _ = EnrollmentCampaign.objects.get_or_create(
+                target_class=class_group,
+                status=EnrollmentCampaign.Status.OPEN,
+                defaults={
+                    "title": f"Enroll in {class_group.name}",
+                    "description": f"Request a place in {class_group.name}.",
+                    "created_by": owner,
+                },
+            )
+        else:
+            titles = {
+                "ONE_ON_ONE": "One-on-one lesson enquiries",
+                "EVENT": "Academic trip and event enquiries",
+            }
+            campaign, _ = EnrollmentCampaign.objects.get_or_create(
+                target_class=None,
+                title=titles[service],
+                status=EnrollmentCampaign.Status.OPEN,
+                defaults={"description": "Student-led enquiries.", "created_by": owner},
+            )
+
+        duplicate = EnrollmentApplication.objects.filter(
+            campaign=campaign,
+            first_name__iexact=data["first_name"].strip(),
+            last_name__iexact=data["last_name"].strip(),
+            guardian_email__iexact=contact_email,
+            status=EnrollmentApplication.Status.PENDING,
+        ).exists()
+        if duplicate:
+            return Response(
+                {"detail": "A pending request for this student already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        application = EnrollmentApplication.objects.create(
+            campaign=campaign,
+            first_name=data["first_name"].strip(),
+            last_name=data["last_name"].strip(),
+            grade_level=data["grade_level"].strip(),
+            student_email="",
+            guardian_name=f"{data['first_name'].strip()} {data['last_name'].strip()}".strip(),
+            guardian_email=contact_email,
+            guardian_phone=contact_phone,
+            notes="\n".join(
+                part
+                for part in (
+                    f"Preferred times: {preferred_times}" if preferred_times else "",
+                    f"{service.replace('_', ' ').title()} request.",
+                    notes.strip(),
+                )
+                if part
+            ),
+        )
         return Response(
             EnrollmentApplicationSerializer(application).data,
             status=status.HTTP_201_CREATED,

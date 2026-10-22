@@ -7,6 +7,7 @@ import {
   Wallet,
   ClipboardCheck,
   FileBarChart2,
+  Library,
   Settings,
 } from "lucide-react";
 
@@ -15,7 +16,7 @@ export const navigationItems = [
   {
     id: "dashboard",
     label: "Dashboard",
-    path: "/",
+    path: "/dashboard",
     icon: LayoutDashboard,
     description: "Overview of today's activity",
   },
@@ -39,6 +40,13 @@ export const navigationItems = [
     path: "/classes",
     icon: BookOpenCheck,
     description: "Class links and scheduling",
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    path: "/resources",
+    icon: Library,
+    description: "Notes, papers, and study guides",
   },
   {
     id: "calendar",
@@ -141,5 +149,5 @@ export function navigationForRole(role) {
 export function dashboardPathForRole(role) {
   if (role === "TEACHER") return "/teacher";
   if (role === "STUDENT") return "/student";
-  return "/";
+  return "/dashboard";
 }

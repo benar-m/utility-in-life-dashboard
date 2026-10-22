@@ -6,6 +6,7 @@ from .views import (
     EnrollmentCampaignViewSet,
     PublicApplicationCreateView,
     PublicCampaignView,
+    PublicSelfEnrollView,
 )
 
 router = DefaultRouter()
@@ -22,6 +23,11 @@ urlpatterns = [
         "public/enrollment/<uuid:public_id>/applications/",
         PublicApplicationCreateView.as_view(),
         name="public-enrollment-application",
+    ),
+    path(
+        "public/self-enroll/",
+        PublicSelfEnrollView.as_view(),
+        name="public-self-enroll",
     ),
     *router.urls,
 ]
