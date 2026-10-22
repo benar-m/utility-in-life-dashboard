@@ -7,6 +7,7 @@ dist
 
 # Python / Django backend
 backend/.venv/
+backend/.local-python/
 backend/.env
 backend/.pytest_cache/
 backend/.ruff_cache/
