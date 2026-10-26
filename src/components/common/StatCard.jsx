@@ -1,7 +1,8 @@
-
- //Small metric card: label, headline value, and an optional trend note. `tone` maps to a subtle icon background so each stat can be scanned
- //at a glance without competing colors across the row.
-
+/**
+ * Small metric card: label, headline value, and an optional trend note.
+ * `tone` maps to a subtle icon background so each stat can be scanned
+ * at a glance without competing colors across the row.
+ */
 const toneStyles = {
   brand: "bg-brand-50 text-brand-600",
   amber: "bg-amber-50 text-amber-600",

@@ -4,7 +4,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        
+        // Brand palette for Utility in Life Empowerment.
+        // Deep teal reads as "education / growth", amber is reserved
+        // for money-related actions (payments, invoices, earnings).
         brand: {
           50: "#EEF6F4",
           100: "#D6EBE5",

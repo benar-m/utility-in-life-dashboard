@@ -1,4 +1,7 @@
-
+/**
+ * Consistent page heading used across every module page.
+ * `actionSlot` accepts an optional button/element rendered on the right.
+ */
 export default function PageHeader({ title, description, actionSlot }) {
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
