@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CheckCircle2, Loader2, Sprout } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import ShuleniLogo from "../components/common/ShuleniLogo.jsx";
 import { acceptInvitation } from "../api/client.js";
 import FormField, { inputClassName } from "../components/common/FormField.jsx";
 import InlineAlert from "../components/common/InlineAlert.jsx";
@@ -32,17 +33,9 @@ export default function AcceptInvitationPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white">
-            <Sprout size={20} aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Utility in Life</p>
-            <p className="text-xs text-slate-500">Account invitation</p>
-          </div>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-shuleni-turquoise via-[#7FE8E0] to-shuleni-aqua px-4 py-10">
+      <ShuleniLogo className="mb-6" />
+      <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-xl shadow-shuleni-navy/10">
 
         {isAccepted ? (
           <div className="text-center">

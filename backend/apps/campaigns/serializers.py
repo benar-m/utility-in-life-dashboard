@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
@@ -5,7 +7,7 @@ from rest_framework import serializers
 
 from apps.academics.models import ClassGroup
 
-from .models import EnrollmentApplication, EnrollmentCampaign
+from .models import EnrollmentApplication, EnrollmentCampaign, Program, ProgramRegistration
 
 
 def campaign_public_url(campaign):
@@ -108,6 +110,15 @@ class PublicCampaignSerializer(serializers.ModelSerializer):
                 else None
             ),
             "currency": class_group.currency,
+            "teacher": class_group.primary_teacher.user.get_full_name(),
+            "schedule": [
+                {
+                    "weekday": rule.get_weekday_display(),
+                    "start_time": rule.start_time.strftime("%H:%M"),
+                    "end_time": rule.end_time.strftime("%H:%M"),
+                }
+                for rule in class_group.schedule_rules.all()
+            ],
         }
 
     @extend_schema_field(serializers.BooleanField())
@@ -222,3 +233,71 @@ class EnrollmentApplicationSerializer(serializers.ModelSerializer):
 
 class ApplicationRejectSerializer(serializers.Serializer):
     reason = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+
+
+class ProgramRegistrationSerializer(serializers.ModelSerializer):
+    subjects = serializers.ListField(
+        child=serializers.ChoiceField(choices=ProgramRegistration.SUBJECT_CHOICES),
+        allow_empty=True,
+    )
+
+    class Meta:
+        model = ProgramRegistration
+        fields = (
+            "id",
+            "student_name",
+            "parent_name",
+            "level",
+            "level_other",
+            "study_mode",
+            "subjects",
+            "subjects_other",
+            "parent_phone",
+            "status",
+            "created_at",
+        )
+        read_only_fields = ("id", "status", "created_at")
+
+    def validate_parent_phone(self, value):
+        digits = re.sub(r"[\s-]", "", value)
+        if not re.fullmatch(r"(\+?254|0)[17]\d{8}", digits):
+            raise serializers.ValidationError(
+                "Enter a valid Kenyan phone number, e.g. 0712 345 678."
+            )
+        return digits
+
+    def validate(self, attrs):
+        if (
+            attrs.get("level") == ProgramRegistration.Level.OTHER
+            and not attrs.get("level_other", "").strip()
+        ):
+            raise serializers.ValidationError({"level_other": "Please specify the level."})
+        if not attrs.get("subjects") and not attrs.get("subjects_other", "").strip():
+            raise serializers.ValidationError({"subjects": "Select at least one subject."})
+        attrs["subjects"] = list(dict.fromkeys(attrs.get("subjects", [])))
+        return attrs
+
+
+class ProgramRegistrationStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProgramRegistration
+        fields = ("status",)
+
+
+class PublicProgramSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Program
+        fields = ("title", "audience", "starts_on", "ends_on", "status")
+
+    @extend_schema_field(serializers.ChoiceField(choices=("upcoming", "running")))
+    def get_status(self, obj):
+        return "running" if obj.starts_on <= timezone.localdate() else "upcoming"
+
+
+LEVEL_GROUPS = (("GRADE_", "CBC / CBE"), ("FORM_", "8-4-4 (KCSE)"), ("IGCSE_", "IGCSE"))
+
+
+def level_group(value):
+    return next((label for prefix, label in LEVEL_GROUPS if value.startswith(prefix)), None)

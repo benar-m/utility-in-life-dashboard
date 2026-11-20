@@ -116,6 +116,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+PUBLIC_CONTACT_PHONE = os.getenv("PUBLIC_CONTACT_PHONE", "0720 084 756")
 INVITATION_EXPIRY_HOURS = env_int("INVITATION_EXPIRY_HOURS", 48)
 PAYMENT_DEFAULT_DUE_DAYS = env_int("PAYMENT_DEFAULT_DUE_DAYS", 7)
 PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "mock").strip().lower()

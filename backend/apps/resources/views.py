@@ -1,12 +1,14 @@
 from django.db.models import Count, Prefetch
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from apps.academics.models import ClassGroup, ScheduleRule
+from apps.academics.models import ClassEnrollment, ClassGroup, ScheduleRule
+from apps.accounts.models import User
 from apps.accounts.permissions import IsOwnerOrAdmin
 
 from .models import Resource, ResourceInterest
@@ -90,3 +92,39 @@ class PublicResourceInterestView(APIView):
         serializer.is_valid(raise_exception=True)
         interest = serializer.save()
         return Response({"id": interest.id, "status": "PENDING"}, status=status.HTTP_201_CREATED)
+
+
+ACCESS_DENIED_MESSAGE = (
+    "This resource is for enrolled students. Request access and we'll get back to you."
+)
+
+
+def can_open_resource(user, resource):
+    """Free resources: any signed-in user. Paid: staff, or students enrolled in that subject."""
+    if resource.price_amount is None or resource.price_amount == 0:
+        return True
+    if user.role in (User.Role.OWNER, User.Role.ADMIN, User.Role.TEACHER):
+        return True
+    if resource.subject_id is None:
+        return False
+    return ClassEnrollment.objects.filter(
+        student__user=user,
+        status=ClassEnrollment.Status.ACTIVE,
+        class_group__subject_id=resource.subject_id,
+    ).exists()
+
+
+class ResourceAccessView(APIView):
+    """Returns a published resource's link to signed-in users who may open it."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: None, 403: None})
+    def get(self, request, pk):
+        resource = get_object_or_404(Resource, pk=pk, is_published=True)
+        if not can_open_resource(request.user, resource):
+            return Response(
+                {"detail": ACCESS_DENIED_MESSAGE},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return Response({"id": resource.id, "download_url": resource.download_url})

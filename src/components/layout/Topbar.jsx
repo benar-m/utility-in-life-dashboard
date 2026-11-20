@@ -25,7 +25,7 @@ export default function Topbar({ onToggleSidebar }) {
         <input
           type="search"
           placeholder="Search students, teachers, classes…"
-          className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-400 focus:bg-white"
+          className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-400 focus:bg-white"
         />
       </label>
 
@@ -36,7 +36,7 @@ export default function Topbar({ onToggleSidebar }) {
           aria-label="View notifications"
         >
           <Bell size={20} />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-500" />
+          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-shuleni-red" />
         </button>
       </div>
     </header>

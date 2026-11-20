@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   FileBarChart2,
   Library,
+  ClipboardList,
   Settings,
 } from "lucide-react";
 
@@ -26,6 +27,13 @@ export const navigationItems = [
     path: "/students",
     icon: Users,
     description: "Registrations and student records",
+  },
+  {
+    id: "registrations",
+    label: "Registrations",
+    path: "/registrations",
+    icon: ClipboardList,
+    description: "Sign-ups from the public registration form",
   },
   {
     id: "teachers",

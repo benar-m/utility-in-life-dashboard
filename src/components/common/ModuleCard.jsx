@@ -10,18 +10,18 @@ export default function ModuleCard({ path, label, description, icon: Icon }) {
   return (
     <Link
       to={path}
-      className="group flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand-300 hover:shadow-md"
+      className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-shuleni-turquoise hover:shadow-lg hover:shadow-shuleni-navy/10"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-        <Icon size={18} aria-hidden="true" />
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-shuleni-aqua text-shuleni-teal">
+        <Icon size={20} aria-hidden="true" />
       </span>
       <span className="flex-1">
-        <span className="block text-sm font-semibold text-slate-900">{label}</span>
+        <span className="block font-display text-[15px] font-bold text-shuleni-navy">{label}</span>
         <span className="mt-0.5 block text-xs text-slate-500">{description}</span>
       </span>
       <ChevronRight
         size={18}
-        className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-500"
+        className="shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-shuleni-red"
         aria-hidden="true"
       />
     </Link>

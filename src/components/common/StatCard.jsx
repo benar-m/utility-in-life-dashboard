@@ -4,23 +4,23 @@
  * at a glance without competing colors across the row.
  */
 const toneStyles = {
-  brand: "bg-brand-50 text-brand-600",
+  brand: "bg-shuleni-aqua text-shuleni-teal",
   amber: "bg-amber-50 text-amber-600",
   slate: "bg-slate-100 text-slate-600",
 };
 
 export default function StatCard({ label, value, helperText, icon: Icon, tone = "brand" }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-slate-500">{label}</p>
         {Icon && (
-          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${toneStyles[tone]}`}>
-            <Icon size={16} aria-hidden="true" />
+          <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneStyles[tone]}`}>
+            <Icon size={19} aria-hidden="true" />
           </span>
         )}
       </div>
-      <p className="mt-3 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-3 font-display text-3xl font-extrabold text-shuleni-navy">{value}</p>
       {helperText && <p className="mt-1 text-xs text-slate-500">{helperText}</p>}
     </div>
   );

@@ -60,7 +60,6 @@ class PublicResourceSerializer(serializers.ModelSerializer):
             "resource_type_label",
             "price_amount",
             "currency",
-            "download_url",
         )
 
     @extend_schema_field(serializers.CharField())
@@ -100,7 +99,7 @@ class PublicClassSerializer(serializers.ModelSerializer):
         )
 
     def get_teacher(self, obj):
-        return obj.primary_teacher.user.get_full_name() or obj.primary_teacher.user.email
+        return obj.primary_teacher.user.get_full_name()
 
     def get_schedule(self, obj):
         rules = obj.schedule_rules.all()

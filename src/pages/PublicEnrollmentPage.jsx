@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Sprout } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { CheckCircle2, Clock3, Loader2 } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client.js";
 import FormField, { inputClassName } from "../components/common/FormField.jsx";
 import InlineAlert from "../components/common/InlineAlert.jsx";
+import ShuleniLogo from "../components/common/ShuleniLogo.jsx";
 
 const initialForm = {
   first_name: "",
@@ -57,15 +58,9 @@ export default function PublicEnrollmentPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <header className="border-b border-slate-200 px-6 py-5 sm:px-8">
-          <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white">
-              <Sprout size={20} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Utility in Life</p>
-              <p className="text-xs text-slate-500">Student enrollment</p>
-            </div>
-          </div>
+          <Link to="/" aria-label="Shuleni Online home">
+            <ShuleniLogo />
+          </Link>
         </header>
 
         <div className="px-6 py-6 sm:px-8">
@@ -93,6 +88,14 @@ export default function PublicEnrollmentPage() {
                   <p className="mt-1 text-xs text-brand-700">
                     {campaign.target_class.subject} · {campaign.target_class.grade_level}
                   </p>
+                  {campaign.target_class.teacher && (
+                    <p className="mt-1 text-xs text-brand-700">Teacher: {campaign.target_class.teacher}</p>
+                  )}
+                  {campaign.target_class.schedule?.map((slot) => (
+                    <p key={`${slot.weekday}-${slot.start_time}`} className="mt-1 flex items-center gap-1 text-xs text-brand-700">
+                      <Clock3 size={12} aria-hidden="true" /> {slot.weekday} {slot.start_time}–{slot.end_time}
+                    </p>
+                  ))}
                   <p className="mt-2 text-sm text-brand-800">
                     {campaign.target_class.cost_amount === null
                       ? "Cost will be confirmed by the administrator."

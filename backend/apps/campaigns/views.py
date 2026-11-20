@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -12,14 +13,18 @@ from rest_framework.views import APIView
 from apps.accounts.models import User
 from apps.accounts.permissions import IsOwnerOrAdmin
 
-from .models import EnrollmentApplication, EnrollmentCampaign
+from .models import EnrollmentApplication, EnrollmentCampaign, Program, ProgramRegistration
 from .serializers import (
     ApplicationRejectSerializer,
     EnrollmentApplicationSerializer,
     EnrollmentCampaignSerializer,
+    ProgramRegistrationSerializer,
+    ProgramRegistrationStatusSerializer,
     PublicApplicationCreateSerializer,
     PublicCampaignSerializer,
+    PublicProgramSerializer,
     PublicSelfEnrollSerializer,
+    level_group,
 )
 from .services import accept_application, reject_application
 
@@ -90,7 +95,9 @@ class PublicCampaignView(APIView):
     @extend_schema(responses=PublicCampaignSerializer)
     def get(self, request, public_id):
         campaign = get_object_or_404(
-            EnrollmentCampaign.objects.select_related("target_class__subject"),
+            EnrollmentCampaign.objects.select_related(
+                "target_class__subject", "target_class__primary_teacher__user"
+            ).prefetch_related("target_class__schedule_rules"),
             public_id=public_id,
             status=EnrollmentCampaign.Status.OPEN,
         )
@@ -156,10 +163,14 @@ class PublicSelfEnrollView(APIView):
         preferred_times = data.pop("preferred_times", "")
         notes = data.pop("notes", "")
 
-        owner = User.objects.filter(
-            role__in=(User.Role.OWNER, User.Role.ADMIN),
-            is_active=True,
-        ).order_by("id").first()
+        owner = (
+            User.objects.filter(
+                role__in=(User.Role.OWNER, User.Role.ADMIN),
+                is_active=True,
+            )
+            .order_by("id")
+            .first()
+        )
         if owner is None:
             return Response(
                 {"detail": "Enrollment is not available yet. Please try again shortly."},
@@ -223,4 +234,96 @@ class PublicSelfEnrollView(APIView):
         return Response(
             EnrollmentApplicationSerializer(application).data,
             status=status.HTTP_201_CREATED,
+        )
+
+
+class ProgramRegistrationViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Staff review of public registrations; only the follow-up status can change."""
+
+    permission_classes = [IsOwnerOrAdmin]
+    http_method_names = ["get", "patch", "head", "options"]
+    queryset = ProgramRegistration.objects.all()
+    filterset_fields = ("status", "level", "study_mode")
+    search_fields = ("student_name", "parent_name", "parent_phone")
+    ordering = ("-created_at",)
+
+    def get_serializer_class(self):
+        if self.action == "partial_update":
+            return ProgramRegistrationStatusSerializer
+        return ProgramRegistrationSerializer
+
+    def partial_update(self, request, *args, **kwargs):
+        super().partial_update(request, *args, **kwargs)
+        return Response(ProgramRegistrationSerializer(self.get_object()).data)
+
+
+class PublicProgramRegistrationCreateView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "public_enrollment"
+
+    @extend_schema(
+        request=ProgramRegistrationSerializer,
+        responses={201: ProgramRegistrationSerializer},
+    )
+    def post(self, request):
+        serializer = ProgramRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        registration = serializer.save()
+        return Response(
+            ProgramRegistrationSerializer(registration).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PublicSiteView(APIView):
+    """Contact details and the current public intake for the landing page."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(responses={200: None})
+    def get(self, request):
+        program = (
+            Program.objects.filter(is_published=True, ends_on__gte=timezone.localdate())
+            .order_by("starts_on")
+            .first()
+        )
+        return Response(
+            {
+                "contact_phone": settings.PUBLIC_CONTACT_PHONE,
+                "program": PublicProgramSerializer(program).data if program else None,
+            }
+        )
+
+
+class PublicRegistrationOptionsView(APIView):
+    """Choices for the public registration form, so the frontend never duplicates them."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(responses={200: None})
+    def get(self, request):
+        return Response(
+            {
+                "levels": [
+                    {"value": value, "label": label, "group": level_group(value)}
+                    for value, label in ProgramRegistration.Level.choices
+                ],
+                "study_modes": [
+                    {"value": value, "label": label}
+                    for value, label in ProgramRegistration.StudyMode.choices
+                ],
+                "subjects": [
+                    {"value": value, "label": label}
+                    for value, label in ProgramRegistration.SUBJECT_CHOICES
+                ],
+            }
         )

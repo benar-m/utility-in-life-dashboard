@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PublicCatalogView,
     PublicResourceInterestView,
+    ResourceAccessView,
     ResourceInterestViewSet,
     ResourceViewSet,
 )
@@ -14,6 +15,7 @@ router.register("resource-interests", ResourceInterestViewSet, basename="resourc
 
 urlpatterns = [
     path("public/catalog/", PublicCatalogView.as_view(), name="public-catalog"),
+    path("resources/<int:pk>/access/", ResourceAccessView.as_view(), name="resource-access"),
     path(
         "public/resource-interests/",
         PublicResourceInterestView.as_view(),

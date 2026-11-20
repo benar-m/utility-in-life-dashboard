@@ -3,6 +3,8 @@ import DashboardLayout from "./components/layout/DashboardLayout.jsx";
 import ProtectedRoute from "./components/common/ProtectedRoute.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import StudentRegisterPage from "./pages/StudentRegisterPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
 import DashboardHome from "./pages/DashboardHome.jsx";
 import StudentsPage from "./pages/StudentsPage.jsx";
 import TeachersPage from "./pages/TeachersPage.jsx";
@@ -21,15 +23,16 @@ import StudentDashboardPage from "./pages/student/StudentDashboardPage.jsx";
 import StudentClassesPage from "./pages/student/StudentClassesPage.jsx";
 import PublicEnrollmentPage from "./pages/PublicEnrollmentPage.jsx";
 import StudentPaymentsPage from "./pages/student/StudentPaymentsPage.jsx";
-import StudentHubPage from "./pages/StudentHubPageRedesign.jsx";
 import ResourcesPage from "./pages/ResourcesPage.jsx";
+import RegistrationsPage from "./pages/RegistrationsPage.jsx";
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<StudentHubPage />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<StudentRegisterPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/signup" element={<StudentRegisterPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/accept-invitation/:token" element={<AcceptInvitationPage />} />
       <Route path="/enroll/:publicId" element={<PublicEnrollmentPage />} />
@@ -43,6 +46,7 @@ export default function App() {
       >
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/students" element={<StudentsPage />} />
+        <Route path="/registrations" element={<RegistrationsPage />} />
         <Route path="/teachers" element={<TeachersPage />} />
         <Route path="/classes" element={<ClassesPage />} />
         <Route path="/resources" element={<ResourcesPage />} />

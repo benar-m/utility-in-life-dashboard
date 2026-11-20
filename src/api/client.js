@@ -160,3 +160,8 @@ export async function apiRequest(path, options = {}, canRetry = true) {
 export function resultList(payload) {
   return Array.isArray(payload) ? payload : payload?.results || [];
 }
+
+// Signed-in users only; the public catalog never includes resource links.
+export function resourceAccess(resourceId) {
+  return apiRequest(`resources/${resourceId}/access/`);
+}

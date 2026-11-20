@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import EnrollmentApplication, EnrollmentCampaign
+from .models import EnrollmentApplication, EnrollmentCampaign, Program, ProgramRegistration
 
 
 @admin.register(EnrollmentCampaign)
@@ -17,3 +17,27 @@ class EnrollmentApplicationAdmin(admin.ModelAdmin):
     list_filter = ("status", "campaign")
     search_fields = ("first_name", "last_name", "guardian_email")
     readonly_fields = ("created_at", "reviewed_at")
+
+
+@admin.register(ProgramRegistration)
+class ProgramRegistrationAdmin(admin.ModelAdmin):
+    list_display = (
+        "student_name",
+        "parent_name",
+        "parent_phone",
+        "level",
+        "study_mode",
+        "status",
+        "created_at",
+    )
+    list_filter = ("status", "level", "study_mode")
+    search_fields = ("student_name", "parent_name", "parent_phone")
+    list_editable = ("status",)
+    readonly_fields = ("created_at",)
+
+
+@admin.register(Program)
+class ProgramAdmin(admin.ModelAdmin):
+    list_display = ("title", "starts_on", "ends_on", "is_published")
+    list_filter = ("is_published",)
+    list_editable = ("is_published",)

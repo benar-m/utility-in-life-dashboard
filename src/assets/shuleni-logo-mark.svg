@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 76" role="img" aria-label="Shuleni Online">
+  <!-- Redrawn from the Shuleni Online flyer: split laptop screen with a pen nib, on a teal base. -->
+  <path d="M20 2h28l8 16v42H20a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z" fill="#F7941D"/>
+  <path d="M100 2H72l-8 16v42h36a4 4 0 0 0 4-4V6a4 4 0 0 0-4-4z" fill="#F05A5B"/>
+  <g stroke="#F7941D" stroke-width="3.5" stroke-linecap="round" fill="none">
+    <line x1="60" y1="8" x2="60" y2="16"/>
+    <circle cx="60" cy="24" r="6" fill="#fff"/>
+    <line x1="60" y1="30" x2="60" y2="58"/>
+  </g>
+  <path d="M4 62h112l-6 8a6 6 0 0 1-4.8 2.4H14.8A6 6 0 0 1 10 70z" fill="#12999E"/>
+</svg>
