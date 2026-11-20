@@ -33,7 +33,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-shuleni-turquoise via-[#7FE8E0] to-shuleni-aqua px-4 py-10">
       <Link to="/" aria-label="Shuleni Online home" className="mb-6">
-        <ShuleniLogo />
+        <ShuleniLogo tone="navy" />
       </Link>
       <div className="w-full max-w-sm rounded-3xl bg-white p-7 shadow-xl shadow-shuleni-navy/10">
         <h1 className="font-display text-2xl font-extrabold text-shuleni-navy">Welcome back</h1>

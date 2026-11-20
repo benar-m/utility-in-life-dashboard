@@ -34,7 +34,7 @@ export default function AcceptInvitationPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-shuleni-turquoise via-[#7FE8E0] to-shuleni-aqua px-4 py-10">
-      <ShuleniLogo className="mb-6" />
+      <ShuleniLogo className="mb-6" tone="navy" />
       <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-xl shadow-shuleni-navy/10">
 
         {isAccepted ? (

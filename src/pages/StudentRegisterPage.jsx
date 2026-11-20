@@ -43,7 +43,7 @@ export default function StudentRegisterPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-shuleni-turquoise via-[#7FE8E0] to-shuleni-aqua px-4 py-10">
       <Link to="/" aria-label="Shuleni Online home" className="mb-6">
-        <ShuleniLogo />
+        <ShuleniLogo tone="navy" />
       </Link>
       <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl shadow-shuleni-navy/10 sm:p-8">
         <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-shuleni-teal">Start learning</p><h1 className="mt-2 font-display text-2xl font-extrabold text-shuleni-navy">Create your account</h1><p className="mt-2 text-sm leading-6 text-slate-500">Save your learning options and view resources from one student profile.</p></div>
