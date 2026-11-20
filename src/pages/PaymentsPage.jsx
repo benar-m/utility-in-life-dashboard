@@ -144,7 +144,7 @@ export default function PaymentsPage() {
                     <td className="px-4 py-3 text-slate-600"><p>{invoice.description}</p><p className="text-xs text-slate-400">{money(invoice.total_amount, invoice.currency)}</p></td>
                     <td className="whitespace-nowrap px-4 py-3 text-slate-600">{dateText(invoice.due_date)}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-700">{money(invoice.amount_due, invoice.currency)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={invoice.status} /></td>
+                    <td className="px-4 py-3"><StatusBadge status={invoice.status} />{invoice.pending_prompt && <p className="mt-1 text-xs font-medium text-amber-700">M-Pesa prompt pending</p>}</td>
                     <td className="px-4 py-3 text-right">
                       <ActionMenu label={`Actions for ${invoice.number}`} items={[
                         { label: "Send M-Pesa prompt", icon: Smartphone, disabled: ["PAID", "VOID"].includes(invoice.status), onSelect: () => setInvoiceToPay(invoice) },

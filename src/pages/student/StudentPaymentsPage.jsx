@@ -41,6 +41,14 @@ export default function StudentPaymentsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // While an M-Pesa prompt is live, refresh so the row updates when it's paid or times out.
+  const hasPendingPrompt = invoices.some((invoice) => invoice.pending_prompt);
+  useEffect(() => {
+    if (!hasPendingPrompt) return undefined;
+    const timer = window.setInterval(load, 15000);
+    return () => window.clearInterval(timer);
+  }, [hasPendingPrompt, load]);
+
   return (
     <div>
       <PageHeader title="Payments" description="View invoices, pay with M-Pesa, and keep your digital receipts." />
@@ -61,8 +69,8 @@ export default function StudentPaymentsPage() {
                   <td className="px-4 py-3 text-slate-600">{invoice.description}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-slate-600">{dateText(invoice.due_date)}</td>
                   <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-800">{money(invoice.amount_due, invoice.currency)}</td>
-                  <td className="px-4 py-3"><StatusBadge status={invoice.status} /></td>
-                  <td className="px-4 py-3 text-right"><button type="button" disabled={["PAID", "VOID"].includes(invoice.status)} onClick={() => setInvoiceToPay(invoice)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:bg-slate-100 disabled:text-slate-400"><Smartphone size={14} /> Pay</button></td>
+                  <td className="px-4 py-3"><StatusBadge status={invoice.status} />{invoice.pending_prompt && <p className="mt-1 text-xs font-medium text-amber-700">M-Pesa prompt sent. Check your phone.</p>}</td>
+                  <td className="px-4 py-3 text-right"><button type="button" disabled={["PAID", "VOID"].includes(invoice.status) || Boolean(invoice.pending_prompt)} onClick={() => setInvoiceToPay(invoice)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:bg-slate-100 disabled:text-slate-400"><Smartphone size={14} /> Pay</button></td>
                 </tr>
               ))}</tbody>
             </table>

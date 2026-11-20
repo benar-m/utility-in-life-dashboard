@@ -1,5 +1,7 @@
+from datetime import timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
@@ -37,6 +39,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
     student = serializers.SerializerMethodField()
     class_name = serializers.CharField(source="enrollment.class_group.name", read_only=True)
     amount_due = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    pending_prompt = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -55,6 +58,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "status",
             "issued_at",
             "due_date",
+            "pending_prompt",
             "created_at",
         )
         read_only_fields = (
@@ -70,6 +74,19 @@ class InvoiceSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.DictField())
     def get_student(self, obj):
         return {"id": obj.student_id, "name": str(obj.student)}
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_pending_prompt(self, obj):
+        """An M-Pesa prompt still within its timeout, so the UI can say "check your phone"."""
+        cutoff = timezone.now() - timedelta(seconds=settings.PAYMENT_PROMPT_TIMEOUT_SECONDS)
+        attempt = (
+            obj.attempts.filter(status=PaymentAttempt.Status.PENDING, created_at__gte=cutoff)
+            .order_by("-created_at")
+            .first()
+        )
+        if attempt is None:
+            return None
+        return {"id": str(attempt.id), "created_at": attempt.created_at}
 
     def validate_due_date(self, value):
         if value < timezone.localdate():

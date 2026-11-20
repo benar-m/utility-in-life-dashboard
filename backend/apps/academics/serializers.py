@@ -14,6 +14,12 @@ class SubjectSerializer(serializers.ModelSerializer):
         fields = ("id", "name")
 
 
+class AcademicTermSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicTerm
+        fields = ("id", "name", "starts_on", "ends_on")
+
+
 class ScheduleRuleSerializer(serializers.ModelSerializer):
     weekday_label = serializers.CharField(source="get_weekday_display", read_only=True)
 
@@ -24,9 +30,15 @@ class ScheduleRuleSerializer(serializers.ModelSerializer):
 
 class ClassGroupSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(write_only=True)
-    term_name = serializers.CharField(write_only=True)
-    term_starts_on = serializers.DateField(write_only=True)
-    term_ends_on = serializers.DateField(write_only=True)
+    term_id = serializers.PrimaryKeyRelatedField(
+        source="existing_term",
+        queryset=AcademicTerm.objects.all(),
+        write_only=True,
+        required=False,
+    )
+    term_name = serializers.CharField(write_only=True, required=False)
+    term_starts_on = serializers.DateField(write_only=True, required=False)
+    term_ends_on = serializers.DateField(write_only=True, required=False)
     teacher_id = serializers.PrimaryKeyRelatedField(
         source="primary_teacher",
         queryset=TeacherProfile.objects.filter(status=TeacherProfile.Status.ACTIVE),
@@ -61,6 +73,7 @@ class ClassGroupSerializer(serializers.ModelSerializer):
             "subject_name",
             "grade_level",
             "term",
+            "term_id",
             "term_name",
             "term_starts_on",
             "term_ends_on",
@@ -111,10 +124,18 @@ class ClassGroupSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        starts_on = attrs["term_starts_on"]
-        ends_on = attrs["term_ends_on"]
-        if ends_on < starts_on:
-            raise serializers.ValidationError({"term_ends_on": "Term end must be after its start."})
+        if not attrs.get("existing_term"):
+            missing = [
+                f for f in ("term_name", "term_starts_on", "term_ends_on") if not attrs.get(f)
+            ]
+            if missing:
+                raise serializers.ValidationError(
+                    {field: "Choose an existing term or enter a new one." for field in missing}
+                )
+            if attrs["term_ends_on"] < attrs["term_starts_on"]:
+                raise serializers.ValidationError(
+                    {"term_ends_on": "Term end must be after its start."}
+                )
         if attrs["schedule_end_time"] <= attrs["schedule_start_time"]:
             raise serializers.ValidationError(
                 {"schedule_end_time": "Class end time must be after its start."}
@@ -130,9 +151,10 @@ class ClassGroupSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         subject_name = validated_data.pop("subject_name").strip()
-        term_name = validated_data.pop("term_name").strip()
-        term_starts_on = validated_data.pop("term_starts_on")
-        term_ends_on = validated_data.pop("term_ends_on")
+        existing_term = validated_data.pop("existing_term", None)
+        term_name = validated_data.pop("term_name", "").strip()
+        term_starts_on = validated_data.pop("term_starts_on", None)
+        term_ends_on = validated_data.pop("term_ends_on", None)
         students = validated_data.pop("students_to_enroll", [])
         schedule_days = sorted(set(validated_data.pop("schedule_days")))
         start_time = validated_data.pop("schedule_start_time")
@@ -148,10 +170,18 @@ class ClassGroupSerializer(serializers.ModelSerializer):
                 {"teacher_id": "The selected teacher is not assigned to this subject."}
             )
 
-        term = AcademicTerm.objects.filter(name__iexact=term_name).first()
-        if term and (term.starts_on != term_starts_on or term.ends_on != term_ends_on):
+        term = existing_term or AcademicTerm.objects.filter(name__iexact=term_name).first()
+        if (
+            not existing_term
+            and term
+            and (term.starts_on != term_starts_on or term.ends_on != term_ends_on)
+        ):
             raise serializers.ValidationError(
-                {"term_name": "A term with this name already exists with different dates."}
+                {
+                    "term_name": f"A term called “{term.name}” already exists "
+                    f"({term.starts_on:%d %b %Y} – {term.ends_on:%d %b %Y}). Choose it from "
+                    "the list or use a different name."
+                }
             )
         if term is None:
             term = AcademicTerm.objects.create(

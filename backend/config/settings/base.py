@@ -120,6 +120,8 @@ PUBLIC_CONTACT_PHONE = os.getenv("PUBLIC_CONTACT_PHONE", "0720 084 756")
 INVITATION_EXPIRY_HOURS = env_int("INVITATION_EXPIRY_HOURS", 48)
 PAYMENT_DEFAULT_DUE_DAYS = env_int("PAYMENT_DEFAULT_DUE_DAYS", 7)
 PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "mock").strip().lower()
+# An M-Pesa prompt with no callback after this long stops blocking new attempts.
+PAYMENT_PROMPT_TIMEOUT_SECONDS = env_int("PAYMENT_PROMPT_TIMEOUT_SECONDS", 180)
 if PAYMENT_GATEWAY not in {"mock", "payhero"}:
     raise ValueError("PAYMENT_GATEWAY must be either 'mock' or 'payhero'")
 MPESA_CALLBACK_TOKEN = os.getenv("MPESA_CALLBACK_TOKEN", "unsafe-local-mpesa-callback-token")

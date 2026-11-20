@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { BookOpenCheck, Coins, Link, Link2, Megaphone, Plus } from "lucide-react";
+import { BookOpenCheck, Coins, Link, Link2, Megaphone, Plus, Video } from "lucide-react";
+import MeetingLinkModal from "../components/teachers/MeetingLinkModal.jsx";
 import ClassWizardModal from "../components/classes/ClassWizardModal.jsx";
 import ClassCostModal from "../components/classes/ClassCostModal.jsx";
 import EnrollmentLinkModal from "../components/classes/EnrollmentLinkModal.jsx";
@@ -25,6 +26,7 @@ export default function ClassesPage() {
   const [isCampaignOpen, setIsCampaignOpen] = useState(false);
   const [classForLink, setClassForLink] = useState(null);
   const [classForCost, setClassForCost] = useState(null);
+  const [classForMeeting, setClassForMeeting] = useState(null);
   const { items: classes, isLoading, error, reload } = useApiCollection("classes/?page_size=100");
 
   return (
@@ -117,6 +119,11 @@ export default function ClassesPage() {
                           icon: Coins,
                           onSelect: () => setClassForCost(classGroup),
                         },
+                        {
+                          label: classGroup.default_meeting_url ? "Change meeting link" : "Set meeting link",
+                          icon: Video,
+                          onSelect: () => setClassForMeeting(classGroup),
+                        },
                       ]}
                     />
                   </td>
@@ -127,6 +134,12 @@ export default function ClassesPage() {
         </div>
       )}
 
+      <MeetingLinkModal
+        classGroup={classForMeeting}
+        endpoint="admin"
+        onClose={() => setClassForMeeting(null)}
+        onUpdated={reload}
+      />
       <ClassWizardModal
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}

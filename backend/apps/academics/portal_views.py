@@ -1,6 +1,6 @@
 from django.db.models import Prefetch
 from drf_spectacular.utils import extend_schema
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -70,6 +70,29 @@ class StudentPortalClassViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsLinkedStudent]
     filterset_fields = ("status",)
     ordering = ("name",)
+
+    @extend_schema(request=None, responses={200: None, 403: None})
+    @action(detail=True, methods=["post"])
+    def join(self, request, pk=None):
+        """Hand the meeting link to an enrolled, unrestricted student."""
+        from apps.payments.services import active_restrictions
+
+        class_group = self.get_object()
+        if not class_group.default_meeting_url:
+            return Response(
+                {"detail": "Your teacher hasn't added the meeting link yet."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        restriction = active_restrictions(request.user.student_profile).first()
+        if restriction is not None:
+            return Response(
+                {
+                    "detail": "Class access is paused on your account "
+                    f"({restriction.get_reason_display().lower()}). Please contact the office."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return Response({"meeting_url": class_group.default_meeting_url})
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):

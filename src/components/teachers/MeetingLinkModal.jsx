@@ -5,7 +5,8 @@ import FormField, { inputClassName } from "../common/FormField.jsx";
 import InlineAlert from "../common/InlineAlert.jsx";
 import Modal from "../common/Modal.jsx";
 
-export default function MeetingLinkModal({ classGroup, onClose, onUpdated }) {
+// Teachers save through their portal; admins pass endpoint="admin" to use the classes API.
+export default function MeetingLinkModal({ classGroup, onClose, onUpdated, endpoint = "teacher" }) {
   const [meetingUrl, setMeetingUrl] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,8 +21,9 @@ export default function MeetingLinkModal({ classGroup, onClose, onUpdated }) {
     setError("");
     setIsSubmitting(true);
     try {
-      await apiRequest(`portal/teacher/classes/${classGroup.id}/meeting-link/`, {
-        method: "PATCH",
+      const isAdmin = endpoint === "admin";
+      await apiRequest(isAdmin ? `classes/${classGroup.id}/meeting-link/` : `portal/teacher/classes/${classGroup.id}/meeting-link/`, {
+        method: isAdmin ? "POST" : "PATCH",
         body: { default_meeting_url: meetingUrl.trim() },
       });
       onUpdated();
@@ -46,7 +48,7 @@ export default function MeetingLinkModal({ classGroup, onClose, onUpdated }) {
           <FormField
             label="HTTPS meeting URL"
             htmlFor="meeting-url"
-            hint="Students will not receive this raw link until the secure Attend flow is added."
+            hint="Enrolled students get a Join lesson button in their portal; the link stays hidden from the public."
           >
             <input
               id="meeting-url"

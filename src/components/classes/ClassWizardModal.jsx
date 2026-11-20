@@ -4,6 +4,7 @@ import { apiRequest, resultList } from "../../api/client.js";
 import FormField, { inputClassName } from "../common/FormField.jsx";
 import InlineAlert from "../common/InlineAlert.jsx";
 import Modal from "../common/Modal.jsx";
+import SubjectPicker from "../common/SubjectPicker.jsx";
 
 const weekdays = [
   [0, "Mon"],
@@ -32,6 +33,7 @@ function initialForm() {
     grade_level: "",
     capacity: "",
     teacher_id: "",
+    term_id: "",
     term_name: "",
     term_starts_on: isoDate(startsOn),
     term_ends_on: isoDate(endsOn),
@@ -50,7 +52,7 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
   const [form, setForm] = useState(initialForm);
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
-  const [subjects, setSubjects] = useState([]);
+  const [terms, setTerms] = useState([]);
   const [error, setError] = useState("");
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,12 +64,15 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
     Promise.all([
       apiRequest("teachers/?page_size=200"),
       apiRequest("students/?status=ACTIVE&page_size=200"),
-      apiRequest("subjects/"),
+      apiRequest("terms/"),
     ])
-      .then(([teacherPayload, studentPayload, subjectPayload]) => {
+      .then(([teacherPayload, studentPayload, termPayload]) => {
         setTeachers(resultList(teacherPayload));
         setStudents(resultList(studentPayload));
-        setSubjects(resultList(subjectPayload));
+        const termList = resultList(termPayload);
+        setTerms(termList);
+        // Default to the most recent term so most classes need no term typing at all.
+        setForm((current) => (current.term_id ? current : { ...current, term_id: termList[0] ? String(termList[0].id) : "new" }));
       })
       .catch((requestError) => setError(requestError.message || "Could not load class options."))
       .finally(() => setIsLoadingOptions(false));
@@ -109,14 +114,12 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
       setError("Complete the class name, subject, and grade level.");
       return;
     }
-    if (
-      step === 1 &&
-      (!form.teacher_id || !form.term_name || !form.term_starts_on || !form.term_ends_on)
-    ) {
-      setError("Select a teacher and complete the academic term.");
+    const isNewTerm = form.term_id === "new";
+    if (step === 1 && (!form.teacher_id || !form.term_id || (isNewTerm && (!form.term_name || !form.term_starts_on || !form.term_ends_on)))) {
+      setError("Select a teacher and a term.");
       return;
     }
-    if (step === 1 && form.term_ends_on <= form.term_starts_on) {
+    if (step === 1 && isNewTerm && form.term_ends_on <= form.term_starts_on) {
       setError("The term must end after it starts.");
       return;
     }
@@ -139,10 +142,11 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
     try {
       await apiRequest("classes/", {
         method: "POST",
-        body: {
-          ...form,
-          capacity: form.capacity ? Number(form.capacity) : null,
-        },
+        body: (() => {
+          const { term_id: termId, term_name: termName, term_starts_on: startsOn, term_ends_on: endsOn, ...rest } = form;
+          const term = termId === "new" ? { term_name: termName, term_starts_on: startsOn, term_ends_on: endsOn } : { term_id: Number(termId) };
+          return { ...rest, ...term, capacity: form.capacity ? Number(form.capacity) : null };
+        })(),
       });
       setForm(initialForm());
       setStep(0);
@@ -205,18 +209,11 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
                     />
                   </FormField>
                   <FormField label="Subject" htmlFor="class-subject" required>
-                    <input
+                    <SubjectPicker
                       id="class-subject"
-                      list="subject-options"
-                      required
                       value={form.subject_name}
-                      onChange={update("subject_name")}
-                      placeholder="Mathematics"
-                      className={inputClassName}
+                      onChange={(subjectName) => setForm((current) => ({ ...current, subject_name: subjectName, teacher_id: "" }))}
                     />
-                    <datalist id="subject-options">
-                      {subjects.map((subject) => <option key={subject.id} value={subject.name} />)}
-                    </datalist>
                   </FormField>
                   <FormField label="Grade level" htmlFor="class-grade" required>
                     <input
@@ -252,44 +249,42 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
                       className={inputClassName}
                     >
                       <option value="">Select teacher</option>
-                      {teachers.map((teacher) => (
+                      {teachers
+                        .filter((teacher) => teacher.subjects.some((name) => name.toLowerCase() === form.subject_name.toLowerCase()))
+                        .map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>
                           {teacher.display_name} · {teacher.subjects.join(", ")}
                         </option>
                       ))}
                     </select>
+                    {!teachers.some((teacher) => teacher.subjects.some((name) => name.toLowerCase() === form.subject_name.toLowerCase())) && (
+                      <p className="mt-1 text-xs text-amber-700">No teacher teaches {form.subject_name || "this subject"} yet. Add the subject to a teacher first.</p>
+                    )}
                   </FormField>
-                  <FormField label="Term name" htmlFor="class-term" required>
-                    <input
-                      id="class-term"
-                      required
-                      value={form.term_name}
-                      onChange={update("term_name")}
-                      placeholder="Term 3 2026"
-                      className={inputClassName}
-                    />
+                  <FormField label="Term" htmlFor="class-term-choice" required>
+                    <select id="class-term-choice" required value={form.term_id} onChange={update("term_id")} className={inputClassName}>
+                      <option value="">Select term</option>
+                      {terms.map((term) => (
+                        <option key={term.id} value={term.id}>
+                          {term.name} ({term.starts_on} – {term.ends_on})
+                        </option>
+                      ))}
+                      <option value="new">+ New term…</option>
+                    </select>
                   </FormField>
-                  <FormField label="Term starts" htmlFor="term-start" required>
-                    <input
-                      id="term-start"
-                      type="date"
-                      required
-                      value={form.term_starts_on}
-                      onChange={update("term_starts_on")}
-                      className={inputClassName}
-                    />
-                  </FormField>
-                  <FormField label="Term ends" htmlFor="term-end" required>
-                    <input
-                      id="term-end"
-                      type="date"
-                      min={form.term_starts_on}
-                      required
-                      value={form.term_ends_on}
-                      onChange={update("term_ends_on")}
-                      className={inputClassName}
-                    />
-                  </FormField>
+                  {form.term_id === "new" && (
+                    <>
+                      <FormField label="Term name" htmlFor="class-term" required>
+                        <input id="class-term" required value={form.term_name} onChange={update("term_name")} placeholder="Term 3 2026" className={inputClassName} />
+                      </FormField>
+                      <FormField label="Term starts" htmlFor="term-start" required>
+                        <input id="term-start" type="date" required value={form.term_starts_on} onChange={update("term_starts_on")} className={inputClassName} />
+                      </FormField>
+                      <FormField label="Term ends" htmlFor="term-end" required>
+                        <input id="term-end" type="date" min={form.term_starts_on} required value={form.term_ends_on} onChange={update("term_ends_on")} className={inputClassName} />
+                      </FormField>
+                    </>
+                  )}
                   <div className="sm:col-span-2">
                     <FormField label="Meeting link" htmlFor="meeting-url" hint="Optional now; HTTPS links only.">
                       <input

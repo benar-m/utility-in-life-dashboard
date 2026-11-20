@@ -42,6 +42,7 @@ from .serializers import (
 )
 from .services import (
     apply_overdue_restrictions,
+    expire_stale_attempts,
     generate_class_invoices,
     initiate_stk_push,
     mock_callback_payload,
@@ -192,6 +193,13 @@ class PaymentAttemptViewSet(StudentScopedViewSet):
 
     def get_queryset(self):
         return self.scope_queryset(self.queryset)
+
+    def retrieve(self, request, *args, **kwargs):
+        # Polled by the payment dialog: report a timed-out prompt instead of "pending" forever.
+        attempt = self.get_object()
+        expire_stale_attempts(attempt.invoice)
+        attempt.refresh_from_db()
+        return Response(self.get_serializer(attempt).data)
 
     @extend_schema(request=MockPaymentDecisionSerializer, responses=PaymentAttemptSerializer)
     @action(detail=True, methods=["post"])

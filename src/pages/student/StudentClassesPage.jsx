@@ -1,4 +1,6 @@
-import { BookOpenCheck, Clock3, Video } from "lucide-react";
+import { useState } from "react";
+import { BookOpenCheck, Clock3, Loader2, Video } from "lucide-react";
+import { apiRequest } from "../../api/client.js";
 import EmptyState from "../../components/common/EmptyState.jsx";
 import InlineAlert from "../../components/common/InlineAlert.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
@@ -15,9 +17,30 @@ function scheduleText(rules) {
 }
 
 export default function StudentClassesPage() {
-  const { items: classes, isLoading, error } = useApiCollection(
-    "portal/student/classes/?page_size=100"
-  );
+  const { items: classes, isLoading, error } = useApiCollection("portal/student/classes/?page_size=100");
+  const [joiningId, setJoiningId] = useState(null);
+  const [joinError, setJoinError] = useState("");
+
+  // Open the tab synchronously so popup blockers allow it, then point it at the lesson.
+  const joinClass = async (classGroup) => {
+    setJoinError("");
+    setJoiningId(classGroup.id);
+    const lessonTab = window.open("", "_blank");
+    try {
+      const { meeting_url: meetingUrl } = await apiRequest(`portal/student/classes/${classGroup.id}/join/`, { method: "POST", body: {} });
+      if (lessonTab) {
+        lessonTab.opener = null;
+        lessonTab.location.href = meetingUrl;
+      } else {
+        window.location.href = meetingUrl;
+      }
+    } catch (requestError) {
+      lessonTab?.close();
+      setJoinError(requestError.message || "Could not open the lesson.");
+    } finally {
+      setJoiningId(null);
+    }
+  };
 
   return (
     <div>
@@ -25,7 +48,7 @@ export default function StudentClassesPage() {
         title="My classes"
         description="Only classes where your student record has an active enrollment are shown."
       />
-      {error && <InlineAlert>{error}</InlineAlert>}
+      {(error || joinError) && <InlineAlert>{error || joinError}</InlineAlert>}
       <InlineAlert tone="success">
         You can view and pay invoices from Payments. An overdue restriction may pause class attendance while payment access remains open.
       </InlineAlert>
@@ -69,15 +92,25 @@ export default function StudentClassesPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        disabled
-                        title={classGroup.access_restricted ? classGroup.restriction_reason : "Attend opens when dated lesson sessions are implemented."}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${classGroup.access_restricted ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-400"}`}
-                      >
-                        <Video size={13} />
-                        {classGroup.access_restricted ? "Restricted" : classGroup.meeting_ready ? "Attend not open" : "Link pending"}
-                      </button>
+                      {classGroup.can_attend ? (
+                        <button
+                          type="button"
+                          onClick={() => joinClass(classGroup)}
+                          disabled={joiningId === classGroup.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-shuleni-red px-3 py-1.5 text-xs font-bold text-white hover:bg-[#cf3330] disabled:opacity-60"
+                        >
+                          {joiningId === classGroup.id ? <Loader2 size={13} className="animate-spin" /> : <Video size={13} />}
+                          Join lesson
+                        </button>
+                      ) : (
+                        <span
+                          title={classGroup.access_restricted ? classGroup.restriction_reason : "Your teacher hasn't added the meeting link yet."}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${classGroup.access_restricted ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}
+                        >
+                          <Video size={13} />
+                          {classGroup.access_restricted ? "Access paused" : "Link coming soon"}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

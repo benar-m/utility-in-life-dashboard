@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.db.models import Count, Prefetch
 from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers, status, viewsets
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,15 +10,52 @@ from apps.accounts.permissions import IsOwnerOrAdmin
 from apps.campaigns.models import EnrollmentCampaign
 from apps.campaigns.serializers import campaign_public_url
 
-from .models import ClassEnrollment, ClassGroup, ScheduleRule, Subject
-from .serializers import ClassCostSerializer, ClassGroupSerializer, SubjectSerializer
+from .models import AcademicTerm, ClassEnrollment, ClassGroup, ScheduleRule, Subject
+from .portal_serializers import MeetingLinkSerializer
+from .serializers import (
+    AcademicTermSerializer,
+    ClassCostSerializer,
+    ClassGroupSerializer,
+    SubjectSerializer,
+)
 
 
-class SubjectViewSet(viewsets.ReadOnlyModelViewSet):
+class SubjectViewSet(mixins.CreateModelMixin, viewsets.ReadOnlyModelViewSet):
+    """Anyone signed in can list subjects; only admins add them (deliberately, from a picker)."""
+
     serializer_class = SubjectSerializer
-    permission_classes = [IsAuthenticated]
     pagination_class = None
-    queryset = Subject.objects.filter(is_active=True)
+    queryset = Subject.objects.filter(is_active=True).order_by("name")
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsOwnerOrAdmin()]
+        return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        name = " ".join(serializer.validated_data["name"].split())
+        if name.islower():
+            name = name.title()
+        subject = Subject.objects.filter(name__iexact=name).first()
+        created = subject is None
+        if created:
+            subject = Subject.objects.create(name=name)
+        elif not subject.is_active:
+            subject.is_active = True
+            subject.save(update_fields=("is_active",))
+        return Response(
+            SubjectSerializer(subject).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class AcademicTermViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = AcademicTermSerializer
+    permission_classes = [IsOwnerOrAdmin]
+    pagination_class = None
+    queryset = AcademicTerm.objects.order_by("-starts_on")
 
 
 class ClassGroupViewSet(viewsets.ModelViewSet):
@@ -117,3 +154,12 @@ class ClassGroupViewSet(viewsets.ModelViewSet):
 
         output = ClassGroupSerializer(self.get_queryset().get(pk=class_group.pk))
         return Response(output.data, status=status.HTTP_200_OK)
+
+    @extend_schema(request=MeetingLinkSerializer, responses=ClassGroupSerializer)
+    @action(detail=True, methods=["post"], url_path="meeting-link")
+    def meeting_link(self, request, pk=None):
+        class_group = self.get_object()
+        serializer = MeetingLinkSerializer(class_group, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(ClassGroupSerializer(self.get_queryset().get(pk=class_group.pk)).data)

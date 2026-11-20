@@ -7,10 +7,11 @@ from .portal_views import (
     TeacherPortalClassViewSet,
     TeacherPortalSummaryView,
 )
-from .views import ClassGroupViewSet, SubjectViewSet
+from .views import AcademicTermViewSet, ClassGroupViewSet, SubjectViewSet
 
 router = DefaultRouter()
 router.register("subjects", SubjectViewSet, basename="subject")
+router.register("terms", AcademicTermViewSet, basename="term")
 router.register("classes", ClassGroupViewSet, basename="class")
 router.register(
     "portal/teacher/classes",

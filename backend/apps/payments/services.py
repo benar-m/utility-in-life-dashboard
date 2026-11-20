@@ -25,6 +25,31 @@ from .models import (
     reference_number,
 )
 
+# result_code stored on attempts we gave up waiting for. A late callback for such an
+# attempt is still honoured, so money taken by M-Pesa is never left unrecorded.
+PROMPT_TIMEOUT_RESULT_CODE = -1
+
+
+def expire_stale_attempts(invoice):
+    cutoff = timezone.now() - timedelta(seconds=settings.PAYMENT_PROMPT_TIMEOUT_SECONDS)
+    return invoice.attempts.filter(
+        status=PaymentAttempt.Status.PENDING,
+        provider__in=(PaymentAttempt.Provider.MOCK, PaymentAttempt.Provider.PAYHERO),
+        created_at__lt=cutoff,
+    ).update(
+        status=PaymentAttempt.Status.FAILED,
+        result_code=PROMPT_TIMEOUT_RESULT_CODE,
+        result_description="No response from M-Pesa in time. You can send a new prompt.",
+        completed_at=timezone.now(),
+    )
+
+
+def accepts_callback(attempt):
+    return attempt.status == PaymentAttempt.Status.PENDING or (
+        attempt.status == PaymentAttempt.Status.FAILED
+        and attempt.result_code == PROMPT_TIMEOUT_RESULT_CODE
+    )
+
 
 def normalize_mpesa_phone(value):
     digits = "".join(character for character in str(value) if character.isdigit())
@@ -152,6 +177,7 @@ def record_manual_payment(*, invoice, amount, method, reference="", note="", act
         raise serializers.ValidationError("A void invoice cannot accept a payment.")
     if invoice.amount_due <= 0:
         raise serializers.ValidationError("This invoice is already paid.")
+    expire_stale_attempts(invoice)
     if invoice.attempts.filter(status=PaymentAttempt.Status.PENDING).exists():
         raise serializers.ValidationError(
             "An M-Pesa prompt is still pending. Wait for it to finish before recording "
@@ -241,9 +267,11 @@ def initiate_stk_push(*, invoice, phone_number, amount, actor):
             raise serializers.ValidationError(
                 {"amount": f"Amount cannot exceed the invoice balance of {invoice.amount_due}."}
             )
+        expire_stale_attempts(invoice)
         if invoice.attempts.filter(status=PaymentAttempt.Status.PENDING).exists():
             raise serializers.ValidationError(
-                "A payment prompt is already pending for this invoice. Wait for it to finish."
+                "A payment prompt was just sent for this invoice. Check your phone, or try "
+                "again in a few minutes."
             )
         if gateway.name == "payhero" and invoice.currency != "KES":
             raise serializers.ValidationError(
@@ -316,7 +344,9 @@ def callback_datetime(value):
 def _record_successful_payment(
     *, attempt, paid_amount, provider_reference, phone_number, transaction_date, payload
 ):
-    if attempt.status != PaymentAttempt.Status.PENDING:
+    # Callers have already checked the attempt accepts this callback (and may have
+    # overwritten result_code); here we only guard against recording money twice.
+    if attempt.status == PaymentAttempt.Status.SUCCEEDED:
         return attempt
     invoice = Invoice.objects.select_for_update().get(pk=attempt.invoice_id)
     refresh_invoice(invoice)
@@ -370,7 +400,7 @@ def process_mpesa_callback(payload):
         )
     except PaymentAttempt.DoesNotExist as exc:
         raise serializers.ValidationError("Unknown CheckoutRequestID.") from exc
-    if attempt.status != PaymentAttempt.Status.PENDING:
+    if not accepts_callback(attempt):
         return attempt
 
     result_code = int(callback.get("ResultCode", 1))
@@ -419,7 +449,7 @@ def process_payhero_callback(*, callback_token, payload):
         raise serializers.ValidationError("Invalid PayHero callback token.")
     if not secrets.compare_digest(attempt.checkout_request_id, str(checkout_id)):
         raise serializers.ValidationError("PayHero checkout reference does not match this attempt.")
-    if attempt.status != PaymentAttempt.Status.PENDING:
+    if not accepts_callback(attempt):
         return attempt
 
     status_text = str(response.get("Status", payload.get("status", ""))).lower()
@@ -570,6 +600,16 @@ def models_f(field):
     return F(field)
 
 
+def mark_overdue_invoices(today=None):
+    """Flag unpaid invoices past their due date. Runs daily; restricting access stays manual."""
+    today = today or timezone.localdate()
+    return Invoice.objects.filter(
+        due_date__lt=today,
+        status__in=(Invoice.Status.ISSUED, Invoice.Status.PARTIALLY_PAID),
+        amount_paid__lt=models_f("total_amount"),
+    ).update(status=Invoice.Status.OVERDUE)
+
+
 @transaction.atomic
 def apply_overdue_restrictions(*, actor, scope=StudentAccessRestriction.Scope.CLASS_ACCESS):
     today = timezone.localdate()
@@ -577,11 +617,7 @@ def apply_overdue_restrictions(*, actor, scope=StudentAccessRestriction.Scope.CL
         status=StudentAccessRestriction.Status.ACTIVE,
         restricted_until__lte=timezone.now(),
     ).update(status=StudentAccessRestriction.Status.LIFTED, lifted_at=timezone.now())
-    Invoice.objects.filter(
-        due_date__lt=today,
-        status__in=(Invoice.Status.ISSUED, Invoice.Status.PARTIALLY_PAID),
-        amount_paid__lt=models_f("total_amount"),
-    ).update(status=Invoice.Status.OVERDUE)
+    mark_overdue_invoices(today)
     students = {
         invoice.student
         for invoice in Invoice.objects.select_related("student").filter(

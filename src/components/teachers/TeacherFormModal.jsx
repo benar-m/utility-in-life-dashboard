@@ -4,12 +4,13 @@ import { apiRequest } from "../../api/client.js";
 import FormField, { inputClassName } from "../common/FormField.jsx";
 import InlineAlert from "../common/InlineAlert.jsx";
 import Modal from "../common/Modal.jsx";
+import SubjectPicker from "../common/SubjectPicker.jsx";
 
 const initialForm = {
   full_name: "",
   email: "",
   phone: "",
-  subjects: "",
+  subjects: [],
 };
 
 export default function TeacherFormModal({ isOpen, onClose, onCreated }) {
@@ -34,7 +35,7 @@ export default function TeacherFormModal({ isOpen, onClose, onCreated }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const subjectNames = form.subjects.split(",").map((item) => item.trim()).filter(Boolean);
+    const subjectNames = form.subjects;
     if (subjectNames.length === 0) {
       setError("Add at least one subject.");
       return;
@@ -160,19 +161,12 @@ export default function TeacherFormModal({ isOpen, onClose, onCreated }) {
               />
             </FormField>
           </div>
-          <FormField
-            label="Subjects"
-            htmlFor="teacher-subjects"
-            required
-            hint="Separate multiple subjects with commas."
-          >
-            <input
+          <FormField label="Subjects" htmlFor="teacher-subjects" required hint="Pick every subject they teach.">
+            <SubjectPicker
               id="teacher-subjects"
-              required
+              multiple
               value={form.subjects}
-              onChange={update("subjects")}
-              placeholder="Mathematics, Science"
-              className={inputClassName}
+              onChange={(subjects) => setForm((current) => ({ ...current, subjects }))}
             />
           </FormField>
         </div>
