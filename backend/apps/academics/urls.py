@@ -7,7 +7,7 @@ from .portal_views import (
     TeacherPortalClassViewSet,
     TeacherPortalSummaryView,
 )
-from .views import AcademicTermViewSet, ClassGroupViewSet, SubjectViewSet
+from .views import AcademicTermViewSet, AttendanceSummaryView, ClassGroupViewSet, SubjectViewSet
 
 router = DefaultRouter()
 router.register("subjects", SubjectViewSet, basename="subject")
@@ -25,6 +25,7 @@ router.register(
 )
 
 urlpatterns = [
+    path("attendance/summary/", AttendanceSummaryView.as_view(), name="attendance-summary"),
     path(
         "portal/teacher/summary/",
         TeacherPortalSummaryView.as_view(),

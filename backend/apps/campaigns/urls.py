@@ -5,6 +5,7 @@ from .views import (
     EnrollmentApplicationViewSet,
     EnrollmentCampaignViewSet,
     ProgramRegistrationViewSet,
+    ProgramViewSet,
     PublicApplicationCreateView,
     PublicCampaignView,
     PublicProgramRegistrationCreateView,
@@ -17,6 +18,7 @@ router = DefaultRouter()
 router.register("campaigns", EnrollmentCampaignViewSet, basename="campaign")
 router.register("applications", EnrollmentApplicationViewSet, basename="application")
 router.register("registrations", ProgramRegistrationViewSet, basename="registration")
+router.register("programs", ProgramViewSet, basename="program")
 
 urlpatterns = [
     path("public/site/", PublicSiteView.as_view(), name="public-site"),

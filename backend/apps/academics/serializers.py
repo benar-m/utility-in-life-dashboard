@@ -11,13 +11,21 @@ from .services import assign_student_to_class, financial_defaults_for_class
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
-        fields = ("id", "name")
+        fields = ("id", "name", "is_active")
+        read_only_fields = ("id",)
 
 
 class AcademicTermSerializer(serializers.ModelSerializer):
     class Meta:
         model = AcademicTerm
         fields = ("id", "name", "starts_on", "ends_on")
+
+    def validate(self, attrs):
+        starts = attrs.get("starts_on", getattr(self.instance, "starts_on", None))
+        ends = attrs.get("ends_on", getattr(self.instance, "ends_on", None))
+        if starts and ends and ends < starts:
+            raise serializers.ValidationError({"ends_on": "Term end must be after its start."})
+        return attrs
 
 
 class ScheduleRuleSerializer(serializers.ModelSerializer):

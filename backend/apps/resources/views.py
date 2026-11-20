@@ -3,14 +3,15 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from apps.academics.models import ClassEnrollment, ClassGroup, ScheduleRule
+from apps.academics.models import ClassEnrollment, ClassGroup, ScheduleRule, TeacherSubject
 from apps.accounts.models import Student, User
-from apps.accounts.permissions import IsOwnerOrAdmin
+from apps.accounts.permissions import IsLinkedStudent, IsOwnerOrAdmin, IsTeacher
 
 from .models import Resource, ResourceAccessGrant, ResourceInterest
 from .serializers import (
@@ -178,3 +179,55 @@ class ResourceAccessView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         return Response({"id": resource.id, "download_url": resource.download_url})
+
+
+class TeacherResourceViewSet(viewsets.ModelViewSet):
+    """Teachers manage their own resources, only for subjects they teach."""
+
+    serializer_class = ResourceSerializer
+    permission_classes = [IsTeacher]
+    http_method_names = ["get", "post", "patch", "head", "options"]
+    ordering = ("-created_at",)
+
+    def get_queryset(self):
+        return Resource.objects.select_related("subject").filter(created_by=self.request.user)
+
+    def _check_subject(self, serializer):
+        subject = serializer.validated_data.get("subject")
+        teaches = TeacherSubject.objects.filter(
+            teacher=self.request.user.teacher_profile, subject=subject
+        ).exists()
+        if subject is None or not teaches:
+            raise ValidationError({"subject_id": "Choose one of the subjects you teach."})
+
+    def perform_create(self, serializer):
+        self._check_subject(serializer)
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        if "subject" in serializer.validated_data:
+            self._check_subject(serializer)
+        serializer.save()
+
+
+class StudentResourceListView(APIView):
+    """Published resources, flagged with whether this student can open each one."""
+
+    permission_classes = [IsLinkedStudent]
+
+    @extend_schema(responses={200: None})
+    def get(self, request):
+        subject_ids = set(
+            ClassEnrollment.objects.filter(
+                student__user=request.user, status=ClassEnrollment.Status.ACTIVE
+            ).values_list("class_group__subject_id", flat=True)
+        )
+        resources = Resource.objects.filter(is_published=True).select_related("subject")
+        rows = []
+        for resource in resources:
+            row = PublicResourceSerializer(resource).data
+            row["can_open"] = can_open_resource(request.user, resource)
+            row["for_my_subjects"] = resource.subject_id in subject_ids
+            rows.append(row)
+        rows.sort(key=lambda row: (not row["for_my_subjects"], not row["can_open"], row["title"]))
+        return Response(rows)

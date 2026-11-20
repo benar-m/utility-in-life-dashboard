@@ -181,3 +181,37 @@ class ScheduleRule(models.Model):
 
     def __str__(self) -> str:
         return f"{self.class_group} on {self.get_weekday_display()} at {self.start_time}"
+
+
+class AttendanceRecord(models.Model):
+    """One student's attendance at one lesson (class + date)."""
+
+    class Status(models.TextChoices):
+        PRESENT = "PRESENT", "Present"
+        LATE = "LATE", "Late"
+        ABSENT = "ABSENT", "Absent"
+        EXCUSED = "EXCUSED", "Excused"
+
+    class_group = models.ForeignKey(ClassGroup, on_delete=models.CASCADE, related_name="attendance")
+    student = models.ForeignKey(
+        "accounts.Student", on_delete=models.CASCADE, related_name="attendance"
+    )
+    lesson_date = models.DateField()
+    status = models.CharField(max_length=16, choices=Status.choices)
+    note = models.CharField(max_length=255, blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    recorded_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-lesson_date", "student__first_name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("class_group", "student", "lesson_date"), name="academics_attendance_unique"
+            )
+        ]
+        indexes = [models.Index(fields=("lesson_date", "status"))]
+
+    def __str__(self) -> str:
+        return f"{self.student} · {self.class_group} · {self.lesson_date}: {self.status}"

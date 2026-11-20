@@ -1,4 +1,7 @@
+from datetime import date
+
 from django.db.models import Prefetch
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -8,6 +11,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import Student
 from apps.accounts.permissions import IsLinkedStudent, IsTeacher
 
+from .attendance import AttendanceSaveSerializer, lesson_sheet, save_attendance
 from .models import ClassEnrollment, ClassGroup, ScheduleRule
 from .portal_serializers import (
     MeetingLinkSerializer,
@@ -62,6 +66,28 @@ class TeacherPortalClassViewSet(viewsets.ReadOnlyModelViewSet):
         serializer.save()
         output = TeacherPortalClassSerializer(class_group, context={"request": request})
         return Response(output.data)
+
+    @extend_schema(request=AttendanceSaveSerializer, responses={200: None})
+    @action(detail=True, methods=["get", "post"])
+    def attendance(self, request, pk=None):
+        """GET ?date=YYYY-MM-DD returns the lesson sheet; POST saves it."""
+        class_group = self.get_object()
+        if request.method == "GET":
+            try:
+                lesson_date = date.fromisoformat(request.query_params.get("date", ""))
+            except ValueError:
+                lesson_date = timezone.localdate()
+            return Response(lesson_sheet(class_group, lesson_date))
+        serializer = AttendanceSaveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            save_attendance(
+                class_group,
+                serializer.validated_data["lesson_date"],
+                serializer.validated_data["records"],
+                request.user,
+            )
+        )
 
 
 class StudentPortalClassViewSet(viewsets.ReadOnlyModelViewSet):

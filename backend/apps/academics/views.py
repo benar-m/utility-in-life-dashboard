@@ -1,16 +1,34 @@
+from datetime import date
+
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsOwnerOrAdmin
 from apps.campaigns.models import EnrollmentCampaign
 from apps.campaigns.serializers import campaign_public_url
 
-from .models import AcademicTerm, ClassEnrollment, ClassGroup, ScheduleRule, Subject
+from .attendance import (
+    AttendanceSaveSerializer,
+    attendance_summary,
+    lesson_sheet,
+    parse_range,
+    save_attendance,
+)
+from .models import (
+    AcademicTerm,
+    ClassEnrollment,
+    ClassGroup,
+    ScheduleRule,
+    Subject,
+    TeacherSubject,
+)
 from .portal_serializers import MeetingLinkSerializer
 from .serializers import (
     AcademicTermSerializer,
@@ -22,17 +40,71 @@ from .serializers import (
 )
 
 
-class SubjectViewSet(mixins.CreateModelMixin, viewsets.ReadOnlyModelViewSet):
-    """Anyone signed in can list subjects; only admins add them (deliberately, from a picker)."""
+class SubjectViewSet(
+    mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.ReadOnlyModelViewSet
+):
+    """Anyone signed in can list subjects; only admins add, rename, retire or merge them.
+
+    `?include_retired=1` (admins) also lists retired subjects.
+    """
 
     serializer_class = SubjectSerializer
     pagination_class = None
-    queryset = Subject.objects.filter(is_active=True).order_by("name")
+    http_method_names = ["get", "post", "patch", "head", "options"]
+
+    def get_queryset(self):
+        queryset = Subject.objects.order_by("name")
+        if self.request.query_params.get("include_retired") and self.request.user.role in (
+            "OWNER",
+            "ADMIN",
+        ):
+            return queryset
+        return queryset.filter(is_active=True)
 
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in ("create", "partial_update", "update", "merge"):
             return [IsOwnerOrAdmin()]
         return [IsAuthenticated()]
+
+    def perform_update(self, serializer):
+        name = serializer.validated_data.get("name")
+        if (
+            name
+            and Subject.objects.filter(name__iexact=name.strip())
+            .exclude(pk=serializer.instance.pk)
+            .exists()
+        ):
+            raise serializers.ValidationError(
+                {"name": "Another subject already has this name. Merge them instead."}
+            )
+        serializer.save()
+
+    @extend_schema(
+        request=inline_serializer("SubjectMerge", {"into_id": serializers.IntegerField()}),
+        responses=SubjectSerializer,
+    )
+    @action(detail=True, methods=["post"])
+    @transaction.atomic
+    def merge(self, request, pk=None):
+        """Move everything that uses this subject onto another, then remove it."""
+        from apps.resources.models import Resource
+
+        source = self.get_object()
+        target = (
+            Subject.objects.filter(pk=request.data.get("into_id")).exclude(pk=source.pk).first()
+        )
+        if target is None:
+            return Response(
+                {"detail": "Choose a different subject to merge into."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        for link in TeacherSubject.objects.filter(subject=source):
+            TeacherSubject.objects.get_or_create(teacher=link.teacher, subject=target)
+        TeacherSubject.objects.filter(subject=source).delete()
+        ClassGroup.objects.filter(subject=source).update(subject=target)
+        Resource.objects.filter(subject=source).update(subject=target)
+        source.delete()
+        return Response(SubjectSerializer(target).data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -53,10 +125,11 @@ class SubjectViewSet(mixins.CreateModelMixin, viewsets.ReadOnlyModelViewSet):
         )
 
 
-class AcademicTermViewSet(viewsets.ReadOnlyModelViewSet):
+class AcademicTermViewSet(viewsets.ModelViewSet):
     serializer_class = AcademicTermSerializer
     permission_classes = [IsOwnerOrAdmin]
     pagination_class = None
+    http_method_names = ["get", "post", "patch", "head", "options"]
     queryset = AcademicTerm.objects.order_by("-starts_on")
 
 
@@ -209,3 +282,35 @@ class ClassGroupViewSet(viewsets.ModelViewSet):
         enrollment.status = ClassEnrollment.Status.WITHDRAWN
         enrollment.save(update_fields=("status",))
         return Response(RosterEntrySerializer(enrollment).data)
+
+    @extend_schema(request=AttendanceSaveSerializer, responses={200: None})
+    @action(detail=True, methods=["get", "post"])
+    def attendance(self, request, pk=None):
+        """GET ?date=YYYY-MM-DD returns the lesson sheet; POST saves it."""
+        class_group = self.get_object()
+        if request.method == "GET":
+            try:
+                lesson_date = date.fromisoformat(request.query_params.get("date", ""))
+            except ValueError:
+                lesson_date = timezone.localdate()
+            return Response(lesson_sheet(class_group, lesson_date))
+        serializer = AttendanceSaveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            save_attendance(
+                class_group,
+                serializer.validated_data["lesson_date"],
+                serializer.validated_data["records"],
+                request.user,
+            )
+        )
+
+
+class AttendanceSummaryView(APIView):
+    permission_classes = [IsOwnerOrAdmin]
+
+    @extend_schema(responses={200: None})
+    def get(self, request):
+        start, end = parse_range(request.query_params)
+        class_id = request.query_params.get("class_id") or None
+        return Response(attendance_summary(start, end, class_id))

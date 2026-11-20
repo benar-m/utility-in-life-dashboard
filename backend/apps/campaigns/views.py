@@ -3,7 +3,7 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from apps.academics.models import ClassGroup
 from apps.accounts.models import User
 from apps.accounts.permissions import IsOwnerOrAdmin
+from apps.core.models import OrganizationSettings
 
 from .models import EnrollmentApplication, EnrollmentCampaign, Program, ProgramRegistration
 from .serializers import (
@@ -325,7 +326,8 @@ class PublicSiteView(APIView):
         )
         return Response(
             {
-                "contact_phone": settings.PUBLIC_CONTACT_PHONE,
+                "contact_phone": OrganizationSettings.load().contact_phone
+                or settings.PUBLIC_CONTACT_PHONE,
                 "program": PublicProgramSerializer(program).data if program else None,
             }
         )
@@ -355,3 +357,23 @@ class PublicRegistrationOptionsView(APIView):
                 ],
             }
         )
+
+
+class ProgramSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Program
+        fields = ("id", "title", "audience", "starts_on", "ends_on", "is_published")
+
+    def validate(self, attrs):
+        starts = attrs.get("starts_on", getattr(self.instance, "starts_on", None))
+        ends = attrs.get("ends_on", getattr(self.instance, "ends_on", None))
+        if starts and ends and ends < starts:
+            raise serializers.ValidationError({"ends_on": "The program must end after it starts."})
+        return attrs
+
+
+class ProgramViewSet(viewsets.ModelViewSet):
+    serializer_class = ProgramSerializer
+    permission_classes = [IsOwnerOrAdmin]
+    pagination_class = None
+    queryset = Program.objects.order_by("-starts_on")

@@ -139,7 +139,7 @@ def test_admin_vertical_slice_creates_student_teacher_and_class(authenticated_cl
         "active_students": 1,
         "active_teachers": 1,
         "active_classes": 1,
-        "attendance_today": None,
+        "attendance_today": {"lessons_scheduled": 0, "lessons_recorded": 0, "rate": None},
     }
 
 
