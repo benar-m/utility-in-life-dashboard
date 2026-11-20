@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import UserInvitation
 from .serializers import (
     CurrentUserSerializer,
     InvitationAcceptanceSerializer,
@@ -199,6 +200,17 @@ class InvitationAcceptanceView(APIView):
             fields={"detail": serializers.CharField()},
         ),
     )
+    @extend_schema(responses={200: None, 410: None})
+    def get(self, request, token):
+        """Let the accept page say up front whether the link still works."""
+        invitation = UserInvitation.objects.filter(
+            token_digest=UserInvitation.digest_token(token)
+        ).first()
+        if invitation is None or not invitation.is_usable:
+            state = invitation.status.lower() if invitation else "invalid"
+            return Response({"status": state}, status=status.HTTP_410_GONE)
+        return Response({"status": "pending", "email": invitation.email, "role": invitation.role})
+
     def post(self, request, token):
         serializer = InvitationAcceptanceSerializer(
             data=request.data,

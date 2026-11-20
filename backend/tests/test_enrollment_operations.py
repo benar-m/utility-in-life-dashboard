@@ -92,6 +92,7 @@ def test_class_enrollment_link_is_reused_and_public_metadata_is_safe(operations_
         "grade_level": "Grade 6",
         "cost_amount": "1500.00",
         "currency": "KES",
+        "is_full": False,
         "teacher": "",
         "schedule": [],
     }

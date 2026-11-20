@@ -16,6 +16,8 @@ from .serializers import (
     AcademicTermSerializer,
     ClassCostSerializer,
     ClassGroupSerializer,
+    ClassUpdateSerializer,
+    RosterEntrySerializer,
     SubjectSerializer,
 )
 
@@ -61,7 +63,7 @@ class AcademicTermViewSet(viewsets.ReadOnlyModelViewSet):
 class ClassGroupViewSet(viewsets.ModelViewSet):
     serializer_class = ClassGroupSerializer
     permission_classes = [IsOwnerOrAdmin]
-    http_method_names = ["get", "post", "head", "options"]
+    http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_fields = ("status", "subject", "primary_teacher")
     search_fields = ("name", "subject__name", "grade_level")
     ordering = ("name",)
@@ -163,3 +165,41 @@ class ClassGroupViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(ClassGroupSerializer(self.get_queryset().get(pk=class_group.pk)).data)
+
+    @extend_schema(request=ClassUpdateSerializer, responses=ClassGroupSerializer)
+    def partial_update(self, request, *args, **kwargs):
+        class_group = self.get_object()
+        serializer = ClassUpdateSerializer(class_group, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(ClassGroupSerializer(self.get_queryset().get(pk=class_group.pk)).data)
+
+    @extend_schema(request=None, responses=RosterEntrySerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def roster(self, request, pk=None):
+        class_group = self.get_object()
+        enrollments = (
+            class_group.enrollments.select_related("student")
+            .filter(status=ClassEnrollment.Status.ACTIVE)
+            .order_by("student__first_name", "student__last_name")
+        )
+        return Response(RosterEntrySerializer(enrollments, many=True).data)
+
+    @extend_schema(
+        request=inline_serializer("WithdrawRequest", {"enrollment_id": serializers.IntegerField()}),
+        responses=RosterEntrySerializer,
+    )
+    @action(detail=True, methods=["post"])
+    def withdraw(self, request, pk=None):
+        class_group = self.get_object()
+        enrollment = class_group.enrollments.filter(
+            pk=request.data.get("enrollment_id"), status=ClassEnrollment.Status.ACTIVE
+        ).first()
+        if enrollment is None:
+            return Response(
+                {"detail": "That student isn't actively enrolled in this class."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        enrollment.status = ClassEnrollment.Status.WITHDRAWN
+        enrollment.save(update_fields=("status",))
+        return Response(RosterEntrySerializer(enrollment).data)

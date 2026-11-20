@@ -110,6 +110,10 @@ class PublicCampaignSerializer(serializers.ModelSerializer):
                 else None
             ),
             "currency": class_group.currency,
+            "is_full": bool(
+                class_group.capacity
+                and class_group.enrollments.filter(status="ACTIVE").count() >= class_group.capacity
+            ),
             "teacher": class_group.primary_teacher.user.get_full_name(),
             "schedule": [
                 {
@@ -175,6 +179,7 @@ class PublicSelfEnrollSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
     grade_level = serializers.CharField(max_length=64)
+    guardian_name = serializers.CharField(max_length=301, required=False, allow_blank=True)
     contact_email = serializers.EmailField()
     contact_phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
     preferred_times = serializers.CharField(max_length=500, required=False, allow_blank=True)
@@ -215,7 +220,7 @@ class EnrollmentApplicationSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.DictField())
     def get_campaign(self, obj):
-        return {"id": obj.campaign_id, "title": obj.campaign.title}
+        return {"id": obj.campaign_id, "title": obj.campaign.title, "kind": obj.campaign.kind}
 
     @extend_schema_field(serializers.DictField(allow_null=True))
     def get_requested_class(self, obj):
@@ -301,3 +306,13 @@ LEVEL_GROUPS = (("GRADE_", "CBC / CBE"), ("FORM_", "8-4-4 (KCSE)"), ("IGCSE_", "
 
 def level_group(value):
     return next((label for prefix, label in LEVEL_GROUPS if value.startswith(prefix)), None)
+
+
+class ApplicationAcceptSerializer(serializers.Serializer):
+    """Optionally place the student in a different class, or in none ("class_id": null)."""
+
+    class_id = serializers.PrimaryKeyRelatedField(
+        queryset=ClassGroup.objects.filter(status=ClassGroup.Status.ACTIVE),
+        required=False,
+        allow_null=True,
+    )

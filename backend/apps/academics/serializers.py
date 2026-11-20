@@ -228,6 +228,103 @@ class ClassGroupSerializer(serializers.ModelSerializer):
         return class_group
 
 
+class ClassUpdateSerializer(serializers.ModelSerializer):
+    """Edit an existing class. Subject and term are fixed once a class has run."""
+
+    teacher_id = serializers.PrimaryKeyRelatedField(
+        source="primary_teacher",
+        queryset=TeacherProfile.objects.filter(status=TeacherProfile.Status.ACTIVE),
+        required=False,
+    )
+    schedule_days = serializers.ListField(
+        child=serializers.ChoiceField(choices=ScheduleRule.Weekday.choices),
+        required=False,
+        allow_empty=False,
+    )
+    schedule_start_time = serializers.TimeField(required=False)
+    schedule_end_time = serializers.TimeField(required=False)
+
+    class Meta:
+        model = ClassGroup
+        fields = (
+            "name",
+            "grade_level",
+            "capacity",
+            "status",
+            "teacher_id",
+            "schedule_days",
+            "schedule_start_time",
+            "schedule_end_time",
+        )
+
+    def validate_capacity(self, value):
+        active = self.instance.enrollments.filter(status=ClassEnrollment.Status.ACTIVE).count()
+        if value is not None and value < active:
+            raise serializers.ValidationError(
+                f"{active} students are enrolled; capacity can't be lower than that."
+            )
+        return value
+
+    def validate(self, attrs):
+        teacher = attrs.get("primary_teacher")
+        if (
+            teacher
+            and not TeacherSubject.objects.filter(
+                teacher=teacher, subject=self.instance.subject
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {"teacher_id": f"This teacher isn't assigned to {self.instance.subject.name}."}
+            )
+        schedule = [
+            attrs.get(key) for key in ("schedule_days", "schedule_start_time", "schedule_end_time")
+        ]
+        if any(value is not None for value in schedule):
+            if not all(value is not None for value in schedule):
+                raise serializers.ValidationError(
+                    {"schedule_days": "Send the days, start time and end time together."}
+                )
+            if attrs["schedule_end_time"] <= attrs["schedule_start_time"]:
+                raise serializers.ValidationError(
+                    {"schedule_end_time": "Class end time must be after its start."}
+                )
+        return attrs
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        days = validated_data.pop("schedule_days", None)
+        start_time = validated_data.pop("schedule_start_time", None)
+        end_time = validated_data.pop("schedule_end_time", None)
+        instance = super().update(instance, validated_data)
+        if days is not None:
+            instance.schedule_rules.all().delete()
+            ScheduleRule.objects.bulk_create(
+                [
+                    ScheduleRule(
+                        class_group=instance, weekday=day, start_time=start_time, end_time=end_time
+                    )
+                    for day in sorted(set(days))
+                ]
+            )
+        return instance
+
+
+class RosterEntrySerializer(serializers.ModelSerializer):
+    student = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ClassEnrollment
+        fields = ("id", "student", "status", "financial_status", "balance_due", "enrolled_at")
+
+    @extend_schema_field(serializers.DictField())
+    def get_student(self, obj):
+        return {
+            "id": obj.student_id,
+            "name": str(obj.student),
+            "grade_level": obj.student.grade_level,
+        }
+
+
 class ClassCostSerializer(serializers.ModelSerializer):
     currency = serializers.CharField(max_length=3)
     apply_to_active_enrollments = serializers.BooleanField(default=True, write_only=True)

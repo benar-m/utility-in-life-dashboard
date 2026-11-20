@@ -207,6 +207,9 @@ class PaymentSerializer(serializers.ModelSerializer):
 class RefundCreateSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     reason = serializers.CharField(max_length=500)
+    # True when the money was already returned outside the app (e.g. in the PayHero
+    # portal); we only record it so the ledger and invoice stay correct.
+    record_only = serializers.BooleanField(default=False)
 
 
 class RefundSerializer(serializers.ModelSerializer):

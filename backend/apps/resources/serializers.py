@@ -43,6 +43,11 @@ class ResourceSerializer(serializers.ModelSerializer):
             return None
         return {"id": obj.subject_id, "name": obj.subject.name}
 
+    def validate_download_url(self, value):
+        if value and not value.lower().startswith("https://"):
+            raise serializers.ValidationError("Resource links must use HTTPS.")
+        return value
+
 
 class PublicResourceSerializer(serializers.ModelSerializer):
     subject = serializers.SerializerMethodField()

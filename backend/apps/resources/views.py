@@ -2,16 +2,17 @@ from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.academics.models import ClassEnrollment, ClassGroup, ScheduleRule
-from apps.accounts.models import User
+from apps.accounts.models import Student, User
 from apps.accounts.permissions import IsOwnerOrAdmin
 
-from .models import Resource, ResourceInterest
+from .models import Resource, ResourceAccessGrant, ResourceInterest
 from .serializers import (
     PublicClassSerializer,
     PublicResourceInterestSerializer,
@@ -24,7 +25,7 @@ from .serializers import (
 class ResourceViewSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer
     permission_classes = [IsOwnerOrAdmin]
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     filterset_fields = ("is_published", "resource_type", "subject")
     search_fields = ("title", "description", "grade_level", "subject__name")
     ordering = ("-created_at", "title")
@@ -35,6 +36,19 @@ class ResourceViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        resource = self.get_object()
+        if resource.interests.exists():
+            return Response(
+                {
+                    "detail": "Students have requested this resource, so it can't be deleted. "
+                    "Unpublish it instead."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        resource.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class ResourceInterestViewSet(
     mixins.ListModelMixin,
@@ -43,12 +57,40 @@ class ResourceInterestViewSet(
 ):
     serializer_class = ResourceInterestSerializer
     permission_classes = [IsOwnerOrAdmin]
-    http_method_names = ["get", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_fields = ("status", "resource")
     ordering = ("-created_at",)
 
     def get_queryset(self):
         return ResourceInterest.objects.select_related("resource")
+
+    @extend_schema(request=None, responses=ResourceInterestSerializer)
+    @action(detail=True, methods=["post"])
+    def grant(self, request, pk=None):
+        """Give the requester access: match their email to a student account (or a guardian's
+        only child), record the grant and mark the request fulfilled."""
+        interest = self.get_object()
+        student = Student.objects.filter(user__email__iexact=interest.email).first()
+        if student is None:
+            children = Student.objects.filter(
+                studentguardian__guardian__user__email__iexact=interest.email,
+                status=Student.Status.ACTIVE,
+            ).distinct()
+            student = children.first() if children.count() == 1 else None
+        if student is None:
+            return Response(
+                {
+                    "detail": f"No single student account matches {interest.email}. Invite the "
+                    "student to the portal first, then grant access."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ResourceAccessGrant.objects.get_or_create(
+            resource=interest.resource, student=student, defaults={"granted_by": request.user}
+        )
+        interest.status = ResourceInterest.Status.FULFILLED
+        interest.save(update_fields=("status", "updated_at"))
+        return Response(ResourceInterestSerializer(interest).data)
 
 
 class PublicCatalogView(APIView):
@@ -104,6 +146,8 @@ def can_open_resource(user, resource):
     if resource.price_amount is None or resource.price_amount == 0:
         return True
     if user.role in (User.Role.OWNER, User.Role.ADMIN, User.Role.TEACHER):
+        return True
+    if ResourceAccessGrant.objects.filter(resource=resource, student__user=user).exists():
         return True
     if resource.subject_id is None:
         return False

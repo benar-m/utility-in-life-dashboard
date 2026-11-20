@@ -83,3 +83,24 @@ class ResourceInterest(models.Model):
 
     def __str__(self) -> str:
         return f"{self.student_name} · {self.resource}"
+
+
+class ResourceAccessGrant(models.Model):
+    """Staff-granted access to one paid resource for one student (e.g. after they pay for it)."""
+
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE, related_name="grants")
+    student = models.ForeignKey(
+        "accounts.Student", on_delete=models.CASCADE, related_name="resource_grants"
+    )
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("resource", "student"), name="resources_grant_unique")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.student} · {self.resource}"

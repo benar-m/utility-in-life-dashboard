@@ -532,7 +532,7 @@ def mock_callback_payload(attempt, *, succeed):
 
 
 @transaction.atomic
-def refund_payment(*, payment, amount, reason, actor):
+def refund_payment(*, payment, amount, reason, actor, record_only=False):
     payment = (
         Payment.objects.select_for_update().select_related("attempt__invoice").get(pk=payment.pk)
     )
@@ -540,16 +540,25 @@ def refund_payment(*, payment, amount, reason, actor):
         raise serializers.ValidationError(
             {"amount": f"Only {payment.refundable_amount} is available to refund."}
         )
-    gateway = get_gateway()
-    if gateway.name != "mock":
-        raise serializers.ValidationError(
-            "PayHero refunds are not enabled here. Process the refund in the provider portal."
+    if record_only or payment.attempt.provider == PaymentAttempt.Provider.MANUAL:
+        # Cash/bank: money is returned (or the entry was a mistake) outside the app; we
+        # record the reversal in the ledger rather than deleting the payment.
+        response = {
+            "OriginatorConversationID": f"REVERSAL-{uuid.uuid4().hex[:12].upper()}",
+            "manual": True,
+        }
+    else:
+        gateway = get_gateway()
+        if gateway.name != "mock":
+            raise serializers.ValidationError(
+                "M-Pesa refunds through PayHero aren't automated yet. Send the refund from "
+                "the PayHero portal, then record it here with “already refunded” ticked."
+            )
+        response = gateway.refund(
+            provider_reference=payment.provider_reference,
+            amount=amount,
+            reason=reason,
         )
-    response = gateway.refund(
-        provider_reference=payment.provider_reference,
-        amount=amount,
-        reason=reason,
-    )
     refund = Refund.objects.create(
         payment=payment,
         amount=amount,

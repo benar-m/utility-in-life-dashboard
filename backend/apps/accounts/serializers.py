@@ -115,6 +115,7 @@ class StudentSerializer(serializers.ModelSerializer):
     guardian_name = serializers.CharField(write_only=True, required=False)
     guardian_email = serializers.EmailField(write_only=True, required=False)
     guardian_phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    confirm_duplicate = serializers.BooleanField(write_only=True, required=False, default=False)
     primary_guardian = serializers.SerializerMethodField()
     portal_status = serializers.SerializerMethodField()
     account_email = serializers.SerializerMethodField()
@@ -133,6 +134,7 @@ class StudentSerializer(serializers.ModelSerializer):
             "guardian_name",
             "guardian_email",
             "guardian_phone",
+            "confirm_duplicate",
             "primary_guardian",
             "portal_status",
             "account_email",
@@ -188,6 +190,7 @@ class StudentSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
+        confirm_duplicate = attrs.pop("confirm_duplicate", False)
         if self.instance is None:
             required = ("guardian_name", "guardian_email")
             missing = [field for field in required if not attrs.get(field)]
@@ -195,7 +198,47 @@ class StudentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {field: "This field is required." for field in missing}
                 )
+            if not confirm_duplicate:
+                duplicate = Student.objects.filter(
+                    first_name__iexact=attrs["first_name"].strip(),
+                    last_name__iexact=attrs["last_name"].strip(),
+                    studentguardian__guardian__user__email__iexact=attrs["guardian_email"],
+                ).first()
+                if duplicate:
+                    raise serializers.ValidationError(
+                        {
+                            "detail": f"{duplicate} is already registered with this guardian "
+                            f"({duplicate.get_status_display().lower()}). Open the existing "
+                            "record, or confirm to add a second student with the same name.",
+                            "duplicate_of": duplicate.pk,
+                        }
+                    )
         return attrs
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        guardian_name = validated_data.pop("guardian_name", None)
+        guardian_phone = validated_data.pop("guardian_phone", None)
+        validated_data.pop("guardian_email", None)  # changing a login email is not an edit
+        instance = super().update(instance, validated_data)
+        link = (
+            instance.studentguardian_set.select_related("guardian__user")
+            .filter(is_primary=True)
+            .first()
+        )
+        if link and (guardian_name or guardian_phone is not None):
+            user = link.guardian.user
+            if guardian_name:
+                first, _, last = guardian_name.strip().partition(" ")
+                user.first_name, user.last_name = first, last
+            if guardian_phone is not None:
+                user.phone = guardian_phone.strip()
+            user.save(update_fields=("first_name", "last_name", "phone"))
+        if instance.user_id and ("first_name" in validated_data or "last_name" in validated_data):
+            instance.user.first_name = instance.first_name
+            instance.user.last_name = instance.last_name
+            instance.user.save(update_fields=("first_name", "last_name"))
+        return instance
 
     @transaction.atomic
     def create(self, validated_data):
@@ -263,6 +306,79 @@ class TeacherSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_subjects(self, obj):
         return [link.subject.name for link in obj.subject_links.all()]
+
+
+class TeacherUpdateSerializer(serializers.Serializer):
+    full_name = serializers.CharField(max_length=301, required=False)
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    subject_names = serializers.ListField(
+        child=serializers.CharField(max_length=120), required=False, allow_empty=False
+    )
+    status = serializers.ChoiceField(
+        choices=(TeacherProfile.Status.ACTIVE, TeacherProfile.Status.INACTIVE), required=False
+    )
+
+    def validate(self, attrs):
+        teacher = self.instance
+        if attrs.get("status") == TeacherProfile.Status.INACTIVE:
+            active_classes = teacher.classes.filter(status="ACTIVE").count()
+            if active_classes:
+                raise serializers.ValidationError(
+                    {"status": f"They lead {active_classes} active class(es). Reassign them first."}
+                )
+        if (
+            attrs.get("status") == TeacherProfile.Status.ACTIVE
+            and not teacher.user.has_usable_password()
+        ):
+            raise serializers.ValidationError(
+                {"status": "They haven't accepted their invitation yet. Resend it instead."}
+            )
+        if "subject_names" in attrs:
+            names = {name.strip().lower() for name in attrs["subject_names"] if name.strip()}
+            known = {subject.name.lower() for subject in Subject.objects.filter(is_active=True)}
+            unknown = sorted(names - known)
+            if unknown:
+                raise serializers.ValidationError(
+                    {"subject_names": f"Unknown subject(s): {', '.join(unknown)}. Add them first."}
+                )
+            taught = {
+                link.subject.name.lower()
+                for link in TeacherSubject.objects.filter(
+                    teacher=teacher,
+                    subject__classes__primary_teacher=teacher,
+                    subject__classes__status="ACTIVE",
+                ).select_related("subject")
+            }
+            dropped = sorted(taught - names)
+            if dropped:
+                raise serializers.ValidationError(
+                    {"subject_names": f"They teach active {', '.join(dropped)} classes; keep it."}
+                )
+        return attrs
+
+    @transaction.atomic
+    def update(self, teacher, validated_data):
+        user = teacher.user
+        if "full_name" in validated_data:
+            first, _, last = validated_data["full_name"].strip().partition(" ")
+            user.first_name, user.last_name = first, last
+        if "phone" in validated_data:
+            user.phone = validated_data["phone"].strip()
+        user.save(update_fields=("first_name", "last_name", "phone"))
+        if "status" in validated_data:
+            teacher.status = validated_data["status"]
+            teacher.save(update_fields=("status", "updated_at"))
+            user.is_active = teacher.status == TeacherProfile.Status.ACTIVE
+            user.save(update_fields=("is_active",))
+        if "subject_names" in validated_data:
+            wanted = {name.strip().lower() for name in validated_data["subject_names"]}
+            subjects = [
+                s for s in Subject.objects.filter(is_active=True) if s.name.lower() in wanted
+            ]
+            TeacherSubject.objects.filter(teacher=teacher).exclude(subject__in=subjects).delete()
+            for subject in subjects:
+                TeacherSubject.objects.get_or_create(teacher=teacher, subject=subject)
+        return teacher
 
 
 class InvitationSerializer(serializers.ModelSerializer):
@@ -456,7 +572,7 @@ class InvitationCreateSerializer(serializers.Serializer):
         acceptance_url = f"{settings.FRONTEND_URL}/accept-invitation/{raw_token}"
         transaction.on_commit(
             lambda: send_mail(
-                "You have been invited to Utility in Life",
+                "You have been invited to Shuleni Online",
                 (
                     f"Hello {full_name},\n\n"
                     f"Use this link to set your password and activate your account:\n"

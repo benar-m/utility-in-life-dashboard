@@ -10,8 +10,13 @@ class EnrollmentCampaign(models.Model):
         OPEN = "OPEN", "Open"
         CLOSED = "CLOSED", "Closed"
 
+    class Kind(models.TextChoices):
+        ENROLLMENT = "ENROLLMENT", "Enrollment"
+        ENQUIRY = "ENQUIRY", "Enquiry"  # e.g. trips: a lead to follow up, not a new student
+
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     title = models.CharField(max_length=180)
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.ENROLLMENT)
     description = models.TextField(blank=True)
     target_class = models.ForeignKey(
         "academics.ClassGroup",

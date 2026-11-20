@@ -19,15 +19,24 @@ from .serializers import (
     InvitationSerializer,
     StudentSerializer,
     TeacherSerializer,
+    TeacherUpdateSerializer,
 )
 
 
 class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
     permission_classes = [IsOwnerOrAdmin]
-    http_method_names = ["get", "post", "head", "options"]
+    http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_fields = ("status", "grade_level")
-    search_fields = ("first_name", "last_name", "grade_level")
+    search_fields = (
+        "first_name",
+        "last_name",
+        "grade_level",
+        "studentguardian__guardian__user__first_name",
+        "studentguardian__guardian__user__last_name",
+        "studentguardian__guardian__user__email",
+        "studentguardian__guardian__user__phone",
+    )
     ordering_fields = ("first_name", "last_name", "joined_at")
     ordering = ("first_name", "last_name")
 
@@ -75,11 +84,34 @@ class StudentViewSet(viewsets.ModelViewSet):
             student.user.save(update_fields=("is_active",))
         return Response(StudentSerializer(student).data)
 
+    @extend_schema(request=None, responses=StudentSerializer)
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None):
+        """Undo an archive. Class places are not restored; reassign them as needed."""
+        student = self.get_object()
+        if student.status == Student.Status.ACTIVE:
+            return Response(StudentSerializer(student).data)
+        student.status = Student.Status.ACTIVE
+        student.save(update_fields=("status", "updated_at"))
+        if student.user_id and student.user.has_usable_password():
+            student.user.is_active = True
+            student.user.save(update_fields=("is_active",))
+        return Response(StudentSerializer(self.get_queryset().get(pk=student.pk)).data)
+
+    @extend_schema(request=None, responses=ClassEnrollmentSerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def enrollments(self, request, pk=None):
+        student = self.get_object()
+        enrollments = student.class_enrollments.select_related("class_group").order_by(
+            "-enrolled_at"
+        )
+        return Response(ClassEnrollmentSerializer(enrollments, many=True).data)
+
 
 class TeacherViewSet(viewsets.ModelViewSet):
     serializer_class = TeacherSerializer
     permission_classes = [IsOwnerOrAdmin]
-    http_method_names = ["get", "head", "options"]
+    http_method_names = ["get", "patch", "head", "options"]
     filterset_fields = ("status",)
     search_fields = ("user__first_name", "user__last_name", "user__email")
     ordering = ("user__first_name", "user__last_name")
@@ -95,6 +127,14 @@ class TeacherViewSet(viewsets.ModelViewSet):
             )
             .annotate(assigned_classes=Count("classes", distinct=True))
         )
+
+    @extend_schema(request=TeacherUpdateSerializer, responses=TeacherSerializer)
+    def partial_update(self, request, *args, **kwargs):
+        teacher = self.get_object()
+        serializer = TeacherUpdateSerializer(teacher, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(TeacherSerializer(self.get_queryset().get(pk=teacher.pk)).data)
 
 
 class InvitationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

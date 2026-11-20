@@ -15,6 +15,7 @@ from apps.accounts.permissions import IsOwnerOrAdmin
 
 from .models import EnrollmentApplication, EnrollmentCampaign, Program, ProgramRegistration
 from .serializers import (
+    ApplicationAcceptSerializer,
     ApplicationRejectSerializer,
     EnrollmentApplicationSerializer,
     EnrollmentCampaignSerializer,
@@ -66,10 +67,17 @@ class EnrollmentApplicationViewSet(viewsets.ReadOnlyModelViewSet):
             "created_student",
         )
 
-    @extend_schema(request=None, responses=EnrollmentApplicationSerializer)
+    @extend_schema(request=ApplicationAcceptSerializer, responses=EnrollmentApplicationSerializer)
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
-        application = accept_application(self.get_object().pk, request.user)
+        serializer = ApplicationAcceptSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        override = (
+            {"target_class": serializer.validated_data["class_id"]}
+            if "class_id" in serializer.validated_data
+            else {}
+        )
+        application = accept_application(self.get_object().pk, request.user, **override)
         return Response(EnrollmentApplicationSerializer(application).data)
 
     @extend_schema(
@@ -196,7 +204,15 @@ class PublicSelfEnrollView(APIView):
                 target_class=None,
                 title=titles[service],
                 status=EnrollmentCampaign.Status.OPEN,
-                defaults={"description": "Student-led enquiries.", "created_by": owner},
+                defaults={
+                    "description": "Student-led enquiries.",
+                    "created_by": owner,
+                    "kind": (
+                        EnrollmentCampaign.Kind.ENQUIRY
+                        if service == "EVENT"
+                        else EnrollmentCampaign.Kind.ENROLLMENT
+                    ),
+                },
             )
 
         duplicate = EnrollmentApplication.objects.filter(
@@ -218,7 +234,8 @@ class PublicSelfEnrollView(APIView):
             last_name=data["last_name"].strip(),
             grade_level=data["grade_level"].strip(),
             student_email="",
-            guardian_name=f"{data['first_name'].strip()} {data['last_name'].strip()}".strip(),
+            guardian_name=data.get("guardian_name", "").strip()
+            or f"{data['first_name'].strip()} {data['last_name'].strip()}".strip(),
             guardian_email=contact_email,
             guardian_phone=contact_phone,
             notes="\n".join(

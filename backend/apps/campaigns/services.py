@@ -8,9 +8,12 @@ from apps.accounts.serializers import StudentSerializer
 
 from .models import EnrollmentApplication
 
+_REQUESTED = object()
+
 
 @transaction.atomic
-def accept_application(application_id, reviewer):
+def accept_application(application_id, reviewer, target_class=_REQUESTED):
+    """Accept into the requested class, or into `target_class` (None = no class)."""
     application = (
         EnrollmentApplication.objects.select_for_update()
         .select_related("campaign__target_class", "created_student")
@@ -21,7 +24,16 @@ def accept_application(application_id, reviewer):
     if application.status == EnrollmentApplication.Status.REJECTED:
         raise serializers.ValidationError("A rejected application cannot be accepted.")
 
-    target_class = application.campaign.target_class
+    if (
+        application.campaign.kind == application.campaign.Kind.ENQUIRY
+        and target_class is _REQUESTED
+    ):
+        raise serializers.ValidationError(
+            "This is an enquiry, not an application. Close it once you've followed up, or "
+            "accept it into a class."
+        )
+    if target_class is _REQUESTED:
+        target_class = application.campaign.target_class
     if target_class:
         if target_class.status != ClassGroup.Status.ACTIVE:
             raise serializers.ValidationError("The requested class is not active.")

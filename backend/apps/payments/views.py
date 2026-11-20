@@ -251,6 +251,7 @@ class PaymentViewSet(StudentScopedViewSet):
             amount=serializer.validated_data["amount"],
             reason=serializer.validated_data["reason"],
             actor=request.user,
+            record_only=serializer.validated_data["record_only"],
         )
         return Response(RefundSerializer(refund).data, status=status.HTTP_201_CREATED)
 
