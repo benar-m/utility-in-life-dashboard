@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { CalendarCheck2, Download, Loader2, Percent, UserX, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { apiDownload, apiRequest, resultList } from "../api/client.js";
-import BarList from "../components/charts/BarList.jsx";
 import ChartCard from "../components/charts/ChartCard.jsx";
 import DateRangeFilter, { rangeForDays, shortDate } from "../components/charts/DateRangeFilter.jsx";
 import LineChart from "../components/charts/LineChart.jsx";
 import { ATTENDANCE_COLORS, STATUS } from "../components/charts/palette.js";
-import SegmentedBar from "../components/charts/SegmentedBar.jsx";
+import { DonutChart, RingGauge } from "../components/charts/RadialCharts.jsx";
 import StatTile from "../components/charts/StatTile.jsx";
 import InlineAlert from "../components/common/InlineAlert.jsx";
 import PageHeader from "../components/common/PageHeader.jsx";
@@ -113,23 +112,26 @@ export default function AttendancePage() {
             </ChartCard>
 
             <ChartCard title="Status breakdown" subtitle="All student marks in this range">
-              <SegmentedBar
+              <DonutChart
+                variant="half"
+                size={250}
                 parts={[
                   { label: "Present", value: totals.present, color: ATTENDANCE_COLORS.present },
-                  { label: "Late", value: totals.late, color: ATTENDANCE_COLORS.late, textColor: "#3b2a05" },
+                  { label: "Late", value: totals.late, color: ATTENDANCE_COLORS.late },
                   { label: "Absent", value: totals.absent, color: ATTENDANCE_COLORS.absent },
-                  { label: "Excused", value: totals.excused, color: ATTENDANCE_COLORS.excused, textColor: "#1e293b" },
+                  { label: "Excused", value: totals.excused, color: ATTENDANCE_COLORS.excused },
                 ]}
+                centerValue={percent(summary.rate)}
+                centerLabel="attended"
+                emptyLabel="Nothing recorded in this range"
               />
-              <p className="mt-5 text-xs text-slate-500">
-                Rates are coloured green (85%+), amber (70–84%) and red (below 70%), always with the number.
-              </p>
             </ChartCard>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2">
             <ChartCard
               title="Rate by class"
+              subtitle="Green 85%+, amber 70–84%, red below 70%"
               table={{
                 columns: [
                   { label: "Class", key: "name" },
@@ -139,13 +141,17 @@ export default function AttendancePage() {
                 rows: summary.by_class,
               }}
             >
-              <BarList
-                rows={summary.by_class.map((row) => ({ label: row.name, value: row.rate, color: rateColor(row.rate), classId: row.class_id }))}
-                max={100}
-                format={percent}
-                renderLabel={(row) => <Link to={`/classes/${row.classId}`} className="hover:underline">{row.label}</Link>}
-                emptyLabel="No class has attendance in this range yet"
-              />
+              {summary.by_class.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-400">No class has attendance in this range yet</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3">
+                  {summary.by_class.map((row) => (
+                    <RingGauge key={row.class_id} value={row.rate} color={rateColor(row.rate)} caption={`${row.lessons} lesson${row.lessons === 1 ? "" : "s"}`}>
+                      <Link to={`/classes/${row.class_id}`} className="hover:underline">{row.name}</Link>
+                    </RingGauge>
+                  ))}
+                </div>
+              )}
             </ChartCard>
 
             <ChartCard title="Missing the most lessons" subtitle="Follow up with these families first">

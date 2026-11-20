@@ -1,20 +1,30 @@
 import { useEffect, useState } from "react";
 import { Download, FileSpreadsheet, GraduationCap, Loader2, TrendingUp, UserPlus, Wallet } from "lucide-react";
 import { apiDownload, apiRequest } from "../api/client.js";
-import BarList from "../components/charts/BarList.jsx";
 import ChartCard from "../components/charts/ChartCard.jsx";
 import ColumnChart from "../components/charts/ColumnChart.jsx";
 import DateRangeFilter, { rangeForDays, shortDate } from "../components/charts/DateRangeFilter.jsx";
 import LineChart from "../components/charts/LineChart.jsx";
-import { CATEGORICAL, PRIMARY } from "../components/charts/palette.js";
-import SegmentedBar from "../components/charts/SegmentedBar.jsx";
+import { CATEGORICAL, PRIMARY, STATUS } from "../components/charts/palette.js";
 import StatTile from "../components/charts/StatTile.jsx";
 import { compactNumber } from "../components/charts/useChartFrame.js";
 import InlineAlert from "../components/common/InlineAlert.jsx";
 import PageHeader from "../components/common/PageHeader.jsx";
+import { DonutChart } from "../components/charts/RadialCharts.jsx";
 
 const kes = (value, long = false) =>
   long ? `KES ${Number(value).toLocaleString("en-KE", { maximumFractionDigits: 0 })}` : `KES ${compactNumber(Number(value))}`;
+
+// Largest five classes get their own slice; the rest fold into "Other". Colours follow the
+// class (alphabetical among the five), not its rank, so they don't reshuffle as balances move.
+function outstandingSlices(rows) {
+  const sorted = [...rows].sort((a, b) => Number(b.outstanding) - Number(a.outstanding));
+  const top = sorted.slice(0, 5);
+  const colorOf = Object.fromEntries([...top].sort((a, b) => a.name.localeCompare(b.name)).map((row, i) => [row.name, CATEGORICAL[i]]));
+  const slices = top.map((row) => ({ label: row.name, value: Number(row.outstanding), color: colorOf[row.name] }));
+  const rest = sorted.slice(5).reduce((sum, row) => sum + Number(row.outstanding), 0);
+  return rest ? [...slices, { label: "Other classes", value: rest, color: STATUS.neutral }] : slices;
+}
 
 const METHOD_COLORS = { MPESA: CATEGORICAL[0], CASH: CATEGORICAL[1], BANK: CATEGORICAL[2] };
 
@@ -98,12 +108,12 @@ export default function ReportsPage() {
                 rows: report.collections,
               }}
             >
-              <ColumnChart data={report.collections} xKey="period" valueKey="collected" xFormat={periodLabel} yFormat={(v, long) => kes(v, long)} emptyLabel="No payments in this range" />
+              <ColumnChart data={report.collections} xKey="period" valueKey="collected" xFormat={periodLabel} yFormat={(v, long) => kes(v, long)} height={330} emptyLabel="No payments in this range" />
             </ChartCard>
 
             <ChartCard
               title="Outstanding by class"
-              subtitle="Unpaid balances right now, largest first"
+              subtitle="Who owes what right now. Hover a slice for its amount"
               table={{
                 columns: [
                   { label: "Class", key: "name" },
@@ -112,10 +122,11 @@ export default function ReportsPage() {
                 rows: report.outstanding_by_class,
               }}
             >
-              <BarList
-                rows={report.outstanding_by_class.map((row) => ({ label: row.name, value: Number(row.outstanding) }))}
-                color={CATEGORICAL[1]}
+              <DonutChart
+                parts={outstandingSlices(report.outstanding_by_class)}
                 format={(v) => kes(v, true)}
+                centerValue={kes(report.outstanding_by_class.reduce((sum, row) => sum + Number(row.outstanding), 0))}
+                centerLabel="outstanding"
                 emptyLabel="Nothing outstanding. Every invoice is paid."
               />
             </ChartCard>
@@ -160,7 +171,9 @@ export default function ReportsPage() {
                 rows: report.payment_methods,
               }}
             >
-              <SegmentedBar
+              <DonutChart
+                variant="pie"
+                size={172}
                 parts={report.payment_methods.map((row) => ({ label: row.label, value: Number(row.total), color: METHOD_COLORS[row.method] }))}
                 format={(v) => kes(v, true)}
                 emptyLabel="No payments in this range"

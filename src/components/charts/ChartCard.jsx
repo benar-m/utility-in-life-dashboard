@@ -23,7 +23,7 @@ export function Legend({ items, shape = "line" }) {
 export default function ChartCard({ title, subtitle, legend, legendShape, table, children, action, className = "" }) {
   const [view, setView] = useState("chart");
   return (
-    <section className={`flex flex-col rounded-2xl border border-slate-200 bg-white p-5 ${className}`}>
+    <section className={`flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 ${className}`}>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-display text-base font-bold text-shuleni-navy">{title}</h2>
