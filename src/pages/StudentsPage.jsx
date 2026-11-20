@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Archive, GraduationCap, KeyRound, Plus, ShieldCheck, ShieldOff, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Archive, Eye, GraduationCap, KeyRound, Plus, RotateCcw, Search, ShieldCheck, ShieldOff, Users } from "lucide-react";
 import { apiRequest } from "../api/client.js";
 import EnrollmentApplicationsPanel from "../components/campaigns/EnrollmentApplicationsPanel.jsx";
 import ActionMenu from "../components/common/ActionMenu.jsx";
@@ -24,7 +25,29 @@ export default function StudentsPage() {
   const [studentToArchive, setStudentToArchive] = useState(null);
   const [studentToRestrict, setStudentToRestrict] = useState(null);
   const [actionError, setActionError] = useState("");
-  const { items: students, isLoading, error, reload } = useApiCollection("students/?page_size=100");
+  const [statusFilter, setStatusFilter] = useState("ACTIVE");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+
+  // Debounce so the server search runs once the admin pauses typing.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const query = new URLSearchParams({ page_size: "100", ...(statusFilter && { status: statusFilter }), ...(search && { search }) });
+  const { items: students, isLoading, error, reload } = useApiCollection(`students/?${query}`);
+
+  const restore = async (student) => {
+    setActionError("");
+    try {
+      await apiRequest(`students/${student.id}/restore/`, { method: "POST", body: {} });
+      await reload();
+    } catch (requestError) {
+      setActionError(requestError.message || "Could not restore the student.");
+    }
+  };
 
   return (
     <div>
@@ -45,9 +68,37 @@ export default function StudentsPage() {
 
       <EnrollmentApplicationsPanel onAccepted={reload} />
 
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm" role="group" aria-label="Filter by status">
+          {[["ACTIVE", "Active"], ["INACTIVE", "Archived"], ["", "All"]].map(([value, label]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={statusFilter === value}
+              onClick={() => setStatusFilter(value)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${statusFilter === value ? "bg-brand-500 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:w-80">
+          <Search size={16} className="text-slate-400" aria-hidden="true" />
+          <input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search name, guardian, email or phone"
+            aria-label="Search students"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+          />
+        </label>
+      </div>
+
       {(error || actionError) && <InlineAlert>{error || actionError}</InlineAlert>}
       {isLoading ? (
         <TableSkeleton columnLabels={columnLabels} />
+      ) : students.length === 0 && (search || statusFilter !== "ACTIVE") ? (
+        <EmptyState icon={Users} title="No matching students" description="Try another search or filter." />
       ) : students.length === 0 ? (
         <EmptyState
           icon={Users}
@@ -69,7 +120,9 @@ export default function StudentsPage() {
             <tbody className="divide-y divide-slate-100">
               {students.map((student) => (
                 <tr key={student.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-medium text-slate-900">{student.full_name}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900">
+                    <Link to={`/students/${student.id}`} className="hover:text-brand-600 hover:underline">{student.full_name}</Link>
+                  </td>
                   <td className="px-4 py-3">
                     <p className="text-slate-700">{student.primary_guardian?.name || "—"}</p>
                     <p className="text-xs text-slate-400">{student.primary_guardian?.email}</p>
@@ -96,6 +149,14 @@ export default function StudentsPage() {
                     <ActionMenu
                       label={`Actions for ${student.full_name}`}
                       items={[
+                        {
+                          label: "View / edit",
+                          icon: Eye,
+                          onSelect: () => navigate(`/students/${student.id}`),
+                        },
+                        ...(student.status !== "ACTIVE"
+                          ? [{ label: "Restore student", icon: RotateCcw, onSelect: () => restore(student) }]
+                          : []),
                         {
                           label: "Assign to class",
                           icon: GraduationCap,
@@ -149,7 +210,7 @@ export default function StudentsPage() {
       <StudentFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onCreated={reload}
+        onCreated={() => reload()}
       />
       <StudentInvitationModal
         student={studentToInvite}

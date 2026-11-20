@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -81,7 +81,13 @@ class ClassGroupViewSet(viewsets.ModelViewSet):
                     queryset=ClassEnrollment.objects.select_related("student"),
                 ),
             )
-            .annotate(enrolled_count=Count("enrollments", distinct=True))
+            .annotate(
+                enrolled_count=Count(
+                    "enrollments",
+                    filter=Q(enrollments__status=ClassEnrollment.Status.ACTIVE),
+                    distinct=True,
+                )
+            )
         )
 
     @extend_schema(

@@ -17,17 +17,32 @@ const emptyForm = {
   is_published: true,
 };
 
-export default function ResourceFormModal({ isOpen, subjects, onClose, onCreated }) {
+// Pass `resource` to edit an existing one; otherwise this adds a new resource.
+export default function ResourceFormModal({ isOpen, subjects, onClose, onCreated, resource }) {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setForm(emptyForm);
+      setForm(
+        resource
+          ? {
+              title: resource.title,
+              description: resource.description || "",
+              subject_id: resource.subject ? String(resource.subject.id) : "",
+              grade_level: resource.grade_level || "",
+              resource_type: resource.resource_type,
+              price_amount: resource.price_amount ?? "",
+              currency: resource.currency,
+              download_url: resource.download_url || "",
+              is_published: resource.is_published,
+            }
+          : emptyForm
+      );
       setError("");
     }
-  }, [isOpen]);
+  }, [isOpen, resource]);
 
   const update = (field) => (event) => {
     const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
@@ -39,8 +54,8 @@ export default function ResourceFormModal({ isOpen, subjects, onClose, onCreated
     setError("");
     setIsSubmitting(true);
     try {
-      await apiRequest("resources/", {
-        method: "POST",
+      await apiRequest(resource ? `resources/${resource.id}/` : "resources/", {
+        method: resource ? "PATCH" : "POST",
         body: {
           ...form,
           subject_id: form.subject_id ? Number(form.subject_id) : null,
@@ -64,8 +79,8 @@ export default function ResourceFormModal({ isOpen, subjects, onClose, onCreated
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Add learning resource"
-      description="Publish a paper, set of notes, or study guide for students to discover."
+      title={resource ? "Edit resource" : "Add learning resource"}
+      description={resource ? resource.title : "Publish a paper, set of notes, or study guide for students to discover."}
       size="lg"
     >
       <form onSubmit={handleSubmit}>
@@ -105,7 +120,7 @@ export default function ResourceFormModal({ isOpen, subjects, onClose, onCreated
               </FormField>
             </div>
           </div>
-          <FormField label="Resource link" htmlFor="resource-url" hint="Use a secure file or checkout link for this local prototype.">
+          <FormField label="Resource link" htmlFor="resource-url" hint="An https:// link, e.g. a Google Drive file shared with “anyone with the link”.">
             <input id="resource-url" type="url" value={form.download_url} onChange={update("download_url")} placeholder="https://..." className={inputClassName} />
           </FormField>
           <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
@@ -117,7 +132,7 @@ export default function ResourceFormModal({ isOpen, subjects, onClose, onCreated
           <button type="button" onClick={onClose} disabled={isSubmitting} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
           <button type="submit" disabled={isSubmitting} className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-            Publish resource
+            {resource ? "Save changes" : "Publish resource"}
           </button>
         </footer>
       </form>

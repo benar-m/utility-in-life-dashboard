@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
 import FormField, { inputClassName } from "../common/FormField.jsx";
@@ -14,10 +14,21 @@ const initialForm = {
   guardian_phone: "",
 };
 
-export default function StudentFormModal({ isOpen, onClose, onCreated }) {
+// `initialValues` pre-fills the form (e.g. converting a public registration).
+// onCreated receives the new student.
+export default function StudentFormModal({ isOpen, onClose, onCreated, initialValues, title = "Add a student" }) {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
+  const [duplicateOf, setDuplicateOf] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({ ...initialForm, ...initialValues });
+      setError("");
+      setDuplicateOf(null);
+    }
+  }, [isOpen, initialValues]);
 
   const update = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -30,33 +41,58 @@ export default function StudentFormModal({ isOpen, onClose, onCreated }) {
     onClose();
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const submit = async (confirmDuplicate = false) => {
     setError("");
     setIsSubmitting(true);
     try {
-      await apiRequest("students/", { method: "POST", body: form });
+      const student = await apiRequest("students/", {
+        method: "POST",
+        body: { ...form, confirm_duplicate: confirmDuplicate },
+      });
       setForm(initialForm);
-      onCreated();
+      setDuplicateOf(null);
+      onCreated(student);
       onClose();
     } catch (requestError) {
+      const duplicate = requestError.details?.duplicate_of;
+      setDuplicateOf(duplicate ? [].concat(duplicate)[0] : null);
       setError(requestError.message || "Could not add the student.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    submit(false);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Add a student"
+      title={title}
       description="Create the student record and link their primary guardian."
       size="lg"
     >
       <form onSubmit={handleSubmit}>
         <div className="space-y-6 px-6 py-5">
           {error && <InlineAlert>{error}</InlineAlert>}
+          {duplicateOf && (
+            <div className="flex flex-wrap gap-2">
+              <a href={`/students/${duplicateOf}`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Open existing record
+              </a>
+              <button
+                type="button"
+                onClick={() => submit(true)}
+                disabled={isSubmitting}
+                className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
+              >
+                Add anyway (a different student)
+              </button>
+            </div>
+          )}
 
           <fieldset>
             <legend className="mb-3 text-sm font-semibold text-slate-900">Student details</legend>

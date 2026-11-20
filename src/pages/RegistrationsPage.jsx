@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Search } from "lucide-react";
+import { ClipboardList, Search, UserPlus } from "lucide-react";
+import StudentFormModal from "../components/students/StudentFormModal.jsx";
 import { apiRequest } from "../api/client.js";
 import EmptyState from "../components/common/EmptyState.jsx";
 import InlineAlert from "../components/common/InlineAlert.jsx";
@@ -23,7 +24,7 @@ const STATUS_STYLES = {
   DECLINED: "border-slate-200 bg-slate-100 text-slate-600",
 };
 
-const columns = ["Student", "Parent", "Level", "Mode", "Subjects", "Received", "Status"];
+const columns = ["Student", "Parent", "Level", "Mode", "Subjects", "Received", "Status", ""];
 
 const dateText = (value) =>
   new Intl.DateTimeFormat("en-KE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -49,6 +50,8 @@ export default function RegistrationsPage() {
   const [statusFilter, setStatusFilter] = useState("NEW");
   const [search, setSearch] = useState("");
   const [actionError, setActionError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [toConvert, setToConvert] = useState(null);
   const labels = useLabels();
   const query = statusFilter ? `registrations/?status=${statusFilter}&page_size=100` : "registrations/?page_size=100";
   const { items: registrations, isLoading, error, reload } = useApiCollection(query);
@@ -66,8 +69,10 @@ export default function RegistrationsPage() {
 
   const updateStatus = async (registration, status) => {
     setActionError("");
+    setNotice("");
     try {
       await apiRequest(`registrations/${registration.id}/`, { method: "PATCH", body: { status } });
+      setNotice(`${registration.student_name} marked ${STATUSES.find(([value]) => value === status)[1].toLowerCase()}.`);
       await reload();
     } catch (requestError) {
       setActionError(requestError.message || "Could not update the registration.");
@@ -80,6 +85,19 @@ export default function RegistrationsPage() {
     [...registration.subjects.map((subject) => labels.subjects[subject] || subject), registration.subjects_other]
       .filter(Boolean)
       .join(", ");
+
+  const convertValues = useMemo(() => {
+    if (!toConvert) return undefined;
+    const [first = "", ...rest] = toConvert.student_name.split(" ");
+    return {
+      first_name: first,
+      last_name: rest.join(" "),
+      grade_level: levelText(toConvert),
+      guardian_name: toConvert.parent_name,
+      guardian_phone: toConvert.parent_phone,
+    };
+    // levelText only reads the loaded labels
+  }, [toConvert, labels]);
 
   return (
     <div>
@@ -117,6 +135,7 @@ export default function RegistrationsPage() {
       </div>
 
       {(error || actionError) && <InlineAlert>{error || actionError}</InlineAlert>}
+      {notice && <InlineAlert tone="success">{notice}</InlineAlert>}
       {isLoading ? (
         <TableSkeleton columnLabels={columns} />
       ) : filtered.length === 0 ? (
@@ -165,12 +184,30 @@ export default function RegistrationsPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    {registration.status !== "ENROLLED" && (
+                      <button
+                        type="button"
+                        onClick={() => setToConvert(registration)}
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <UserPlus size={14} /> Create student
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      <StudentFormModal
+        isOpen={Boolean(toConvert)}
+        title="Create student from registration"
+        initialValues={convertValues}
+        onClose={() => setToConvert(null)}
+        onCreated={() => updateStatus(toConvert, "ENROLLED")}
+      />
     </div>
   );
 }

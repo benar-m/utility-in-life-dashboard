@@ -174,7 +174,7 @@ export default function PaymentsPage() {
                   <td className="px-4 py-3 text-slate-600">{money(payment.amount, payment.currency)}{Number(payment.amount_refunded) > 0 && <p className="text-xs text-red-500">Refunded {money(payment.amount_refunded, payment.currency)}</p>}</td>
                   <td className="px-4 py-3 text-slate-600">{payment.receipt_number || "—"}</td>
                   <td className="px-4 py-3"><StatusBadge status={payment.status} /></td>
-                  <td className="px-4 py-3 text-right"><ActionMenu label={`Actions for payment ${payment.provider_reference}`} items={[{ label: payment.provider === "payhero" ? "Refund in PayHero" : payment.method === "MPESA" ? "Refund" : "Manual refund not available", icon: RotateCcw, tone: "danger", disabled: payment.provider !== "mock" || Number(payment.refundable_amount) <= 0, onSelect: () => setPaymentToRefund(payment) }]} /></td>
+                  <td className="px-4 py-3 text-right"><ActionMenu label={`Actions for payment ${payment.provider_reference}`} items={[{ label: payment.method !== "MPESA" ? "Reverse payment" : payment.provider === "payhero" ? "Record PayHero refund" : "Refund", icon: RotateCcw, tone: "danger", disabled: Number(payment.refundable_amount) <= 0, onSelect: () => setPaymentToRefund(payment) }]} /></td>
                 </tr>
               ))}</tbody>
             </table>

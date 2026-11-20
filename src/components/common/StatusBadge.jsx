@@ -1,5 +1,12 @@
 const styles = {
   ACTIVE: "bg-brand-50 text-brand-700",
+  WITHDRAWN: "bg-slate-100 text-slate-600",
+  COMPLETED: "bg-blue-50 text-blue-700",
+  NEW: "bg-amber-50 text-amber-700",
+  ACCEPTED: "bg-brand-50 text-brand-700",
+  REJECTED: "bg-slate-100 text-slate-600",
+  FULFILLED: "bg-brand-50 text-brand-700",
+  CONTACTED: "bg-blue-50 text-blue-700",
   PENDING: "bg-amber-50 text-amber-700",
   INVITED: "bg-blue-50 text-blue-700",
   NOT_INVITED: "bg-slate-100 text-slate-600",

@@ -49,7 +49,9 @@ export default function InvoiceFormModal({ isOpen, students, onClose, onCreated 
             <select id="invoice-student" required value={form.student_id} onChange={update("student_id")} className={inputClassName}>
               <option value="">Select a student</option>
               {students.filter((student) => student.status === "ACTIVE").map((student) => (
-                <option key={student.id} value={student.id}>{student.full_name}</option>
+                <option key={student.id} value={student.id}>
+                  {student.full_name} · {student.grade_level}{student.primary_guardian ? ` · ${student.primary_guardian.name}` : ""}
+                </option>
               ))}
             </select>
           </FormField>

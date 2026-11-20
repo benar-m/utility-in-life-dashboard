@@ -17,8 +17,12 @@ export default function AssignStudentModal({ student, onClose, onAssigned }) {
     setClassId("");
     setError("");
     setIsLoading(true);
-    apiRequest("classes/?status=ACTIVE&page_size=200")
-      .then((payload) => setClasses(resultList(payload)))
+    // Leave out classes the student is already in.
+    Promise.all([apiRequest("classes/?status=ACTIVE&page_size=200"), apiRequest(`students/${student.id}/enrollments/`)])
+      .then(([payload, enrollments]) => {
+        const current = new Set(enrollments.filter((item) => item.status === "ACTIVE").map((item) => item.class_group));
+        setClasses(resultList(payload).filter((classGroup) => !current.has(classGroup.id)));
+      })
       .catch((requestError) => setError(requestError.message || "Could not load classes."))
       .finally(() => setIsLoading(false));
   }, [student]);
@@ -61,12 +65,15 @@ export default function AssignStudentModal({ student, onClose, onAssigned }) {
               className={inputClassName}
             >
               <option value="">{isLoading ? "Loading classes…" : "Select class"}</option>
-              {classes.map((classGroup) => (
-                <option key={classGroup.id} value={classGroup.id}>
-                  {classGroup.name} · {classGroup.enrolled_count}
-                  {classGroup.capacity ? `/${classGroup.capacity}` : ""} enrolled
-                </option>
-              ))}
+              {classes.map((classGroup) => {
+                const isFull = Boolean(classGroup.capacity) && classGroup.enrolled_count >= classGroup.capacity;
+                return (
+                  <option key={classGroup.id} value={classGroup.id} disabled={isFull}>
+                    {classGroup.name} · {classGroup.enrolled_count}
+                    {classGroup.capacity ? `/${classGroup.capacity}` : ""} enrolled{isFull ? " (full)" : ""}
+                  </option>
+                );
+              })}
             </select>
           </FormField>
           <InlineAlert tone="success">

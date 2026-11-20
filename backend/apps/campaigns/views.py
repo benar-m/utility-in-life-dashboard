@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.academics.models import ClassGroup
 from apps.accounts.models import User
 from apps.accounts.permissions import IsOwnerOrAdmin
 
@@ -114,6 +115,11 @@ class PublicCampaignView(APIView):
                 {"detail": "This enrollment form is closed."},
                 status=status.HTTP_410_GONE,
             )
+        if campaign.target_class and campaign.target_class.status != ClassGroup.Status.ACTIVE:
+            return Response(
+                {"detail": "This class isn't taking applications right now."},
+                status=status.HTTP_410_GONE,
+            )
         return Response(PublicCampaignSerializer(campaign).data)
 
 
@@ -136,6 +142,11 @@ class PublicApplicationCreateView(APIView):
         if campaign.closes_at and campaign.closes_at <= timezone.now():
             return Response(
                 {"detail": "This enrollment form is closed."},
+                status=status.HTTP_410_GONE,
+            )
+        if campaign.target_class and campaign.target_class.status != ClassGroup.Status.ACTIVE:
+            return Response(
+                {"detail": "This class isn't taking applications right now."},
                 status=status.HTTP_410_GONE,
             )
         serializer = PublicApplicationCreateSerializer(

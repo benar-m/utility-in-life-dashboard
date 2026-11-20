@@ -164,6 +164,33 @@ accounts created during testing.
 
 ---
 
+## Progress
+
+**P0 and P1 are done** (20 Nov 2026), each verified in the browser against a QA copy of
+the database and covered by backend tests (139 passing). The changes:
+
+| # | Status | What changed |
+|---|---|---|
+| A | ✅ | Students get **Join lesson** (link handed out only to enrolled, unrestricted students). Admins set links from Classes or the class page |
+| B | ✅ | Pending M-Pesa prompts expire after 3 minutes (`PAYMENT_PROMPT_TIMEOUT_SECONDS`); invoices show "prompt sent, check your phone"; late success callbacks are still recorded |
+| C | ✅ | `mark_overdue_invoices` runs daily via a systemd timer on the server; restricting stays a confirmed admin action |
+| D | ✅ | Subject picker everywhere; new subjects are added deliberately and reuse existing names case-insensitively. *The stray "maths" subject exists only in the dev database; remove it in Django admin.* |
+| E | ✅ | Class wizard picks an existing term (dates shown) or creates a new one; only teachers of the chosen subject are listed |
+| F | ✅ | Student page (`/students/:id`: edit, guardian, classes, invoices, withdraw), class page (`/classes/:id`: edit details, teacher, capacity, status, timetable, roster, meeting link), teacher edit (name, phone, subjects, deactivate) |
+| G | ✅ | Active / Archived / All filter, server search (name, guardian name/email/phone), Restore |
+| H | ✅ | Same name + guardian is flagged with "Open existing record" / "Add anyway" |
+| I | ✅ | "Create student" on a registration pre-fills Add student and marks it Enrolled |
+| J | ✅ | Accept into the requested class, another class, or none; a History view of handled applications |
+| K | ✅ | Trip requests are labelled *Enquiry* ("Close enquiry" / "Enrol as student…"); the landing form asks for the parent's name |
+| L | ✅ | Resources: edit, publish/unpublish, delete (requested ones must be unpublished instead), HTTPS-only links, **Grant access** from a request |
+| M | ✅ | Cash/bank payments: **Reverse payment** (ledger entry, invoice re-opens). PayHero: refund in the PayHero portal, then **Record PayHero refund** |
+| N | ✅ | Enrollment links say when a class is full; paused/ended classes stop taking applications |
+| O | ✅ | Used, expired or invalid invitation links say so on load |
+| P | ✅ | Student pickers show grade and guardian |
+
+Also fixed along the way: class "enrolled" counts included withdrawn students (also on the public site's
+"places left"); the teacher edit dialog crashed on close; invitation emails now say Shuleni Online.
+
 ## Fix plan
 
 Ordered by impact on running the pilot. Sizes are rough: S ≈ under half a day, M ≈ 1–2 days, L ≈ 3+ days.

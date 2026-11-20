@@ -1,4 +1,4 @@
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
@@ -110,7 +110,13 @@ class PublicCatalogView(APIView):
                     queryset=ScheduleRule.objects.order_by("weekday", "start_time"),
                 )
             )
-            .annotate(enrolled_count=Count("enrollments", distinct=True))
+            .annotate(
+                enrolled_count=Count(
+                    "enrollments",
+                    filter=Q(enrollments__status=ClassEnrollment.Status.ACTIVE),
+                    distinct=True,
+                )
+            )
             .order_by("subject__name", "name")
         )
         resources = Resource.objects.filter(is_published=True).select_related("subject")

@@ -24,6 +24,8 @@ import StudentClassesPage from "./pages/student/StudentClassesPage.jsx";
 import PublicEnrollmentPage from "./pages/PublicEnrollmentPage.jsx";
 import StudentPaymentsPage from "./pages/student/StudentPaymentsPage.jsx";
 import ResourcesPage from "./pages/ResourcesPage.jsx";
+import StudentDetailPage from "./pages/StudentDetailPage.jsx";
+import ClassDetailPage from "./pages/ClassDetailPage.jsx";
 import RegistrationsPage from "./pages/RegistrationsPage.jsx";
 
 export default function App() {
@@ -46,9 +48,11 @@ export default function App() {
       >
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/students" element={<StudentsPage />} />
+        <Route path="/students/:studentId" element={<StudentDetailPage />} />
         <Route path="/registrations" element={<RegistrationsPage />} />
         <Route path="/teachers" element={<TeachersPage />} />
         <Route path="/classes" element={<ClassesPage />} />
+        <Route path="/classes/:classId" element={<ClassDetailPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/payments" element={<PaymentsPage />} />

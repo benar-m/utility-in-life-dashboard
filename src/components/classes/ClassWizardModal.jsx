@@ -362,7 +362,10 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
                               className="h-4 w-4 rounded border-slate-300 text-brand-600"
                             />
                             <span className="text-slate-700">{student.full_name}</span>
-                            <span className="ml-auto text-xs text-slate-400">{student.grade_level}</span>
+                            <span className="ml-auto text-right text-xs text-slate-400">
+                              {student.grade_level}
+                              {student.primary_guardian ? ` · ${student.primary_guardian.name}` : ""}
+                            </span>
                           </label>
                         ))}
                       </div>

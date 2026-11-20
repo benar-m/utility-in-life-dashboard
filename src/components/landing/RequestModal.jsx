@@ -15,6 +15,7 @@ const COPY = {
 const emptyForm = {
   first_name: "",
   last_name: "",
+  guardian_name: "",
   grade_level: "",
   contact_email: "",
   contact_phone: "",
@@ -98,6 +99,11 @@ export default function RequestModal({ request, onClose }) {
             <FormField label="Student's last name" htmlFor="request-last" required>
               <input id="request-last" required value={form.last_name} onChange={update("last_name")} className={inputClassName} />
             </FormField>
+            {asksForLevel && (
+              <FormField label="Parent's name" htmlFor="request-parent" required>
+                <input id="request-parent" required value={form.guardian_name} onChange={update("guardian_name")} className={inputClassName} />
+              </FormField>
+            )}
             {asksForLevel && (
               <FormField label="Grade or level" htmlFor="request-grade" required>
                 <input id="request-grade" required value={form.grade_level} onChange={update("grade_level")} placeholder="Form 3" className={inputClassName} />

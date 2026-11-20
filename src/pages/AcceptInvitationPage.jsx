@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import ShuleniLogo from "../components/common/ShuleniLogo.jsx";
-import { acceptInvitation } from "../api/client.js";
+import { API_BASE_URL, acceptInvitation } from "../api/client.js";
 import FormField, { inputClassName } from "../components/common/FormField.jsx";
 import InlineAlert from "../components/common/InlineAlert.jsx";
 
@@ -13,6 +13,14 @@ export default function AcceptInvitationPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAccepted, setIsAccepted] = useState(false);
+  const [linkState, setLinkState] = useState("checking");
+
+  // Ask the server first, so a used or expired link says so instead of showing the form.
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/auth/invitations/${encodeURIComponent(token)}/accept/`, { credentials: "include" })
+      .then((response) => response.json().then((body) => setLinkState(response.ok ? "pending" : body.status || "invalid")))
+      .catch(() => setLinkState("pending"));
+  }, [token]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -37,7 +45,21 @@ export default function AcceptInvitationPage() {
       <ShuleniLogo className="mb-6" tone="navy" />
       <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-xl shadow-shuleni-navy/10">
 
-        {isAccepted ? (
+        {!isAccepted && linkState !== "pending" && linkState !== "checking" ? (
+          <div className="text-center">
+            <h1 className="font-display text-xl font-extrabold text-shuleni-navy">
+              {linkState === "accepted" ? "This invitation was already used" : linkState === "expired" ? "This invitation link has expired" : "This invitation link isn't valid"}
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">
+              {linkState === "accepted"
+                ? "Your account is already set up. Sign in with your email and password."
+                : "It may have been replaced by a newer invitation. Ask the school office to send you a new one."}
+            </p>
+            <Link to="/login" className="mt-6 inline-flex w-full justify-center rounded-full bg-shuleni-red px-4 py-2.5 text-sm font-bold text-white hover:bg-[#cf3330]">
+              Go to sign in
+            </Link>
+          </div>
+        ) : isAccepted ? (
           <div className="text-center">
             <CheckCircle2 size={44} className="mx-auto text-brand-500" />
             <h1 className="mt-4 text-xl font-semibold text-slate-900">Your account is ready</h1>

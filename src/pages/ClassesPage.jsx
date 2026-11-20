@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { BookOpenCheck, Coins, Link, Link2, Megaphone, Plus, Video } from "lucide-react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { BookOpenCheck, Coins, Link, Link2, Megaphone, Pencil, Plus, Video } from "lucide-react";
 import MeetingLinkModal from "../components/teachers/MeetingLinkModal.jsx";
 import ClassWizardModal from "../components/classes/ClassWizardModal.jsx";
 import ClassCostModal from "../components/classes/ClassCostModal.jsx";
@@ -27,6 +28,7 @@ export default function ClassesPage() {
   const [classForLink, setClassForLink] = useState(null);
   const [classForCost, setClassForCost] = useState(null);
   const [classForMeeting, setClassForMeeting] = useState(null);
+  const navigate = useNavigate();
   const { items: classes, isLoading, error, reload } = useApiCollection("classes/?page_size=100");
 
   return (
@@ -81,7 +83,7 @@ export default function ClassesPage() {
               {classes.map((classGroup) => (
                 <tr key={classGroup.id} className="hover:bg-slate-50/70">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{classGroup.name}</p>
+                    <RouterLink to={`/classes/${classGroup.id}`} className="font-medium text-slate-900 hover:text-brand-600 hover:underline">{classGroup.name}</RouterLink>
                     <p className="text-xs text-slate-400">
                       {classGroup.subject.name} · {classGroup.grade_level} · {classGroup.term.name}
                     </p>
@@ -109,6 +111,11 @@ export default function ClassesPage() {
                     <ActionMenu
                       label={`Actions for ${classGroup.name}`}
                       items={[
+                        {
+                          label: "Open / edit",
+                          icon: Pencil,
+                          onSelect: () => navigate(`/classes/${classGroup.id}`),
+                        },
                         {
                           label: "Copy enrollment link",
                           icon: Link,

@@ -116,7 +116,7 @@ class ClassGroupSerializer(serializers.ModelSerializer):
         annotated_count = getattr(obj, "enrolled_count", None)
         if annotated_count is not None:
             return annotated_count
-        return obj.enrollments.count()
+        return obj.enrollments.filter(status=ClassEnrollment.Status.ACTIVE).count()
 
     def validate_default_meeting_url(self, value):
         if value and not value.lower().startswith("https://"):

@@ -372,3 +372,26 @@ def test_cash_payment_can_be_reversed(billing_data):
     assert invoice.amount_paid == Decimal("0")
     payment.refresh_from_db()
     assert payment.status == Payment.Status.REFUNDED
+
+
+def test_enrolled_count_ignores_withdrawn_students(billing_data):
+    owner = client_for(billing_data["owner"])
+    class_url = f"/api/v1/classes/{billing_data['class_group'].id}"
+    enrollment_id = owner.get(f"{class_url}/roster/").json()[0]["id"]
+
+    owner.post(f"{class_url}/withdraw/", {"enrollment_id": enrollment_id}, format="json")
+
+    assert owner.get(f"{class_url}/").json()["enrolled_count"] == 0
+
+
+def test_paused_class_link_stops_taking_applications(billing_data):
+    class_group = billing_data["class_group"]
+    campaign = EnrollmentCampaign.objects.create(
+        title="Intake", target_class=class_group, created_by=billing_data["owner"]
+    )
+    class_group.status = ClassGroup.Status.PAUSED
+    class_group.save()
+
+    response = APIClient().get(f"/api/v1/public/enrollment/{campaign.public_id}/")
+
+    assert response.status_code == 410

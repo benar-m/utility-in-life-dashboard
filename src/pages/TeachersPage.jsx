@@ -1,17 +1,21 @@
 import { useState } from "react";
-import { GraduationCap, Plus } from "lucide-react";
+import { GraduationCap, Pencil, Plus, Send } from "lucide-react";
+import ActionMenu from "../components/common/ActionMenu.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import InlineAlert from "../components/common/InlineAlert.jsx";
 import PageHeader from "../components/common/PageHeader.jsx";
 import StatusBadge from "../components/common/StatusBadge.jsx";
 import TableSkeleton from "../components/common/TableSkeleton.jsx";
+import TeacherEditModal from "../components/teachers/TeacherEditModal.jsx";
 import TeacherFormModal from "../components/teachers/TeacherFormModal.jsx";
 import useApiCollection from "../hooks/useApiCollection.js";
 
-const columnLabels = ["Teacher", "Subjects", "Assigned classes", "Status", "Contact"];
+const columnLabels = ["Teacher", "Subjects", "Assigned classes", "Status", "Contact", ""];
 
 export default function TeachersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [teacherToEdit, setTeacherToEdit] = useState(null);
+  const [teacherToReinvite, setTeacherToReinvite] = useState(null);
   const { items: teachers, isLoading, error, reload } = useApiCollection("teachers/?page_size=100");
 
   return (
@@ -63,6 +67,26 @@ export default function TeachersPage() {
                   <td className="px-4 py-3 text-slate-600">{teacher.assigned_classes}</td>
                   <td className="px-4 py-3"><StatusBadge status={teacher.status} /></td>
                   <td className="px-4 py-3 text-slate-500">{teacher.account_phone || "—"}</td>
+                  <td className="px-4 py-3 text-right">
+                    <ActionMenu
+                      label={`Actions for ${teacher.display_name}`}
+                      items={[
+                        { label: "Edit", icon: Pencil, onSelect: () => setTeacherToEdit(teacher) },
+                        {
+                          label: "Resend invitation",
+                          icon: Send,
+                          disabled: teacher.status !== "INVITED",
+                          onSelect: () =>
+                            setTeacherToReinvite({
+                              full_name: teacher.display_name,
+                              email: teacher.account_email,
+                              phone: teacher.account_phone || "",
+                              subjects: teacher.subjects,
+                            }),
+                        },
+                      ]}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -71,10 +95,15 @@ export default function TeachersPage() {
       )}
 
       <TeacherFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isModalOpen || Boolean(teacherToReinvite)}
+        initialValues={teacherToReinvite}
+        onClose={() => {
+          setIsModalOpen(false);
+          setTeacherToReinvite(null);
+        }}
         onCreated={reload}
       />
+      <TeacherEditModal teacher={teacherToEdit} onClose={() => setTeacherToEdit(null)} onUpdated={reload} />
     </div>
   );
 }

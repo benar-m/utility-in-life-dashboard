@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
 import FormField, { inputClassName } from "../common/FormField.jsx";
@@ -13,8 +13,13 @@ const initialForm = {
   subjects: [],
 };
 
-export default function TeacherFormModal({ isOpen, onClose, onCreated }) {
+// `initialValues` pre-fills the form to resend an invitation (a new link replaces the old one).
+export default function TeacherFormModal({ isOpen, onClose, onCreated, initialValues }) {
   const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    if (isOpen && initialValues) setForm({ ...initialForm, ...initialValues });
+  }, [isOpen, initialValues]);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invitationUrl, setInvitationUrl] = useState("");

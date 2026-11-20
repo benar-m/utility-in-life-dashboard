@@ -82,6 +82,12 @@ export default function PublicEnrollmentPage() {
             <>
               <h1 className="text-2xl font-semibold text-slate-900">{campaign.title}</h1>
               {campaign.description && <p className="mt-2 text-sm text-slate-600">{campaign.description}</p>}
+              {campaign.target_class?.is_full && (
+                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  This class is currently full. You can still apply and we'll offer you the next place or a similar
+                  class.
+                </p>
+              )}
               {campaign.target_class && (
                 <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50 p-4">
                   <p className="text-sm font-semibold text-brand-800">{campaign.target_class.name}</p>
