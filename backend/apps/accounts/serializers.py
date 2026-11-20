@@ -62,6 +62,54 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
+class StudentRegistrationSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    grade_level = serializers.CharField(max_length=64)
+    email = serializers.EmailField()
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+    password_confirmation = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate_email(self, value):
+        normalized = User.objects.normalize_email(value)
+        if User.objects.filter(email__iexact=normalized).exists():
+            raise serializers.ValidationError("An account with this email already exists.")
+        return normalized
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password_confirmation"]:
+            raise serializers.ValidationError(
+                {"password_confirmation": "The passwords do not match."}
+            )
+        validate_password(attrs["password"])
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        validated_data.pop("password_confirmation")
+        password = validated_data.pop("password")
+        first_name = validated_data.pop("first_name")
+        last_name = validated_data.pop("last_name")
+        grade_level = validated_data.pop("grade_level")
+        user = User.objects.create_user(
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            role=User.Role.STUDENT,
+            is_active=True,
+            **validated_data,
+        )
+        Student.objects.create(
+            first_name=user.first_name,
+            last_name=user.last_name,
+            user=user,
+            grade_level=grade_level,
+            status=Student.Status.ACTIVE,
+        )
+        return user
+
+
 class StudentSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     guardian_name = serializers.CharField(write_only=True, required=False)

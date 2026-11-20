@@ -28,6 +28,14 @@ python manage.py createsuperuser
 
 Then start the frontend from the repository root with `npm run dev`. Its local `/api` requests are proxied to Django on port 8000, so no extra frontend environment configuration is required.
 
+For a quick local review of the student-first flow, seed a small catalogue after migrations:
+
+```bash
+python manage.py seed_demo
+```
+
+The public learning hub is available at `http://localhost:5173/`. The seeded owner account is `owner@utilityinlife.local` with password `Demo-password-2026!`; use it at `/login` to review the admin dashboard and **Resources** tab. The demo seed is safe to re-run and uses the default local SQLite database.
+
 The integrated admin slice currently provides:
 
 - Secure login, refresh-cookie rotation, logout, and session restoration
@@ -41,6 +49,8 @@ The integrated admin slice currently provides:
 - A student portal with scoped dashboard totals, enrolled classes, timetable, and financial-status visibility
 - Admin billing operations for invoice generation, PayHero M-Pesa prompts, manual cash/bank records, receipts, reconciliation, and late-payment restrictions
 - A student Payments portal scoped to the linked student record
+- A public learning hub where students can choose a class, resource, one-to-one support, or academic trip and send a short request
+- A Resources admin tab for publishing free or paid notes, papers, books, and study guides, plus tracking access requests
 
 Dated lesson sessions, secure joining, and attendance remain later implementation phases.
 

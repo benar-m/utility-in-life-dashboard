@@ -153,6 +153,28 @@ class PublicApplicationCreateSerializer(serializers.ModelSerializer):
         )
 
 
+class PublicSelfEnrollSerializer(serializers.Serializer):
+    service = serializers.ChoiceField(choices=("CLASS", "ONE_ON_ONE", "EVENT"))
+    class_id = serializers.PrimaryKeyRelatedField(
+        source="class_group",
+        queryset=ClassGroup.objects.filter(status=ClassGroup.Status.ACTIVE),
+        required=False,
+        allow_null=True,
+    )
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    grade_level = serializers.CharField(max_length=64)
+    contact_email = serializers.EmailField()
+    contact_phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    preferred_times = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    notes = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if attrs["service"] == "CLASS" and not attrs.get("class_group"):
+            raise serializers.ValidationError({"class_id": "Choose a class to continue."})
+        return attrs
+
+
 class EnrollmentApplicationSerializer(serializers.ModelSerializer):
     campaign = serializers.SerializerMethodField()
     requested_class = serializers.SerializerMethodField()

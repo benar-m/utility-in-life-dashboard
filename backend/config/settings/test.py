@@ -12,6 +12,7 @@ REST_FRAMEWORK = {
         "auth": "1000/min",
         "invitation_accept": "1000/min",
         "public_enrollment": "1000/min",
+        "public_catalog": "1000/min",
     },
 }
 

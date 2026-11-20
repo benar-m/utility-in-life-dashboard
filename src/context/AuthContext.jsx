@@ -1,52 +1,52 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { login, logout, refreshSession, registerStudent } from "../api/client.js";
 
 const AuthContext = createContext(null);
-
-const SESSION_STORAGE_KEY = "uil.session"; // demo-only
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    try {
-      const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
-      if (storedSession) {
-        setCurrentUser(JSON.parse(storedSession));
-      }
-    } catch (error) {
-      // Corrupted or inaccessible storage should not crash the app.
-      console.warn("Could not restore session:", error);
-    } finally {
-      setIsCheckingSession(false);
-    }
+    let isMounted = true;
+    refreshSession()
+      .then((user) => {
+        if (isMounted) setCurrentUser(user);
+      })
+      .catch(() => {
+        if (isMounted) setCurrentUser(null);
+      })
+      .finally(() => {
+        if (isMounted) setIsCheckingSession(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  
-  const signIn = ({ fullName, email, role }) => {
-    const nextUser = { fullName, email, role };
-    setCurrentUser(nextUser);
-    window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextUser));
+  const signIn = async ({ email, password }) => {
+    const user = await login(email, password);
+    setCurrentUser(user);
+    return user;
   };
 
-  /**
-   * DEMO ONLY: same caveat as signIn — wire this to
-   * POST /auth/register once a backend exists. The real endpoint is
-   * responsible for hashing the password (e.g. bcrypt/argon2), enforcing
-   * uniqueness of the email, and rejecting weak passwords server-side —
-   * never trust the client-side checks in RegisterPage.jsx alone.
-   */
-  const register = ({ fullName, email, role }) => {
-    signIn({ fullName, email, role });
+  const signUp = async (details) => {
+    const user = await registerStudent(details);
+    setCurrentUser(user);
+    return user;
   };
 
-  const signOut = () => {
-    setCurrentUser(null);
-    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  const signOut = async () => {
+    try {
+      await logout();
+    } finally {
+      setCurrentUser(null);
+    }
   };
 
   const value = useMemo(
-    () => ({ currentUser, isCheckingSession, signIn, register, signOut }),
+    () => ({ currentUser, isCheckingSession, signIn, signUp, signOut }),
     [currentUser, isCheckingSession]
   );
 

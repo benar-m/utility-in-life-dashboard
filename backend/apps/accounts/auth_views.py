@@ -16,6 +16,7 @@ from .serializers import (
     CurrentUserSerializer,
     InvitationAcceptanceSerializer,
     LoginSerializer,
+    StudentRegistrationSerializer,
 )
 
 User = get_user_model()
@@ -75,6 +76,39 @@ class LoginView(APIView):
                 "access": str(refresh.access_token),
                 "user": CurrentUserSerializer(user).data,
             }
+        )
+        set_refresh_cookie(response, refresh)
+        return response
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class StudentRegistrationView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    @extend_schema(
+        request=StudentRegistrationSerializer,
+        responses=inline_serializer(
+            name="StudentRegistrationResponse",
+            fields={
+                "access": serializers.CharField(),
+                "user": CurrentUserSerializer(),
+            },
+        ),
+    )
+    def post(self, request):
+        serializer = StudentRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        refresh = RefreshToken.for_user(user)
+        response = Response(
+            {
+                "access": str(refresh.access_token),
+                "user": CurrentUserSerializer(user).data,
+            },
+            status=status.HTTP_201_CREATED,
         )
         set_refresh_cookie(response, refresh)
         return response
