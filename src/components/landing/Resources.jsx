@@ -19,8 +19,8 @@ export default function Resources({ catalog, onOpen }) {
   const visible = showAll ? filtered : filtered.slice(0, PAGE_SIZE);
 
   const tabClass = (isActive) =>
-    `rounded-full px-4 py-1.5 text-sm font-bold transition ${
-      isActive ? "bg-shuleni-navy text-white" : "text-shuleni-navy hover:bg-white"
+    `shrink-0 rounded-full border-2 px-4 py-1.5 text-sm font-bold transition ${
+      isActive ? "border-shuleni-navy bg-shuleni-navy text-white" : "border-slate-200 bg-white text-shuleni-navy hover:border-shuleni-navy"
     }`;
 
   return (
@@ -38,7 +38,7 @@ export default function Resources({ catalog, onOpen }) {
             </p>
           </div>
           {types.length > 1 && (
-            <div className="inline-flex max-w-full flex-wrap justify-center rounded-full bg-slate-200/60 p-1" role="group" aria-label="Filter by type">
+            <div className="-mx-4 flex w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:justify-center sm:px-0 sm:pb-0" role="group" aria-label="Filter by type">
               <button type="button" aria-pressed={!type} onClick={() => setType(null)} className={tabClass(!type)}>
                 All
               </button>
@@ -67,12 +67,12 @@ export default function Resources({ catalog, onOpen }) {
               {visible.map((resource) => (
                 <li
                   key={resource.id}
-                  className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6"
+                  className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
                 >
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{resource.resource_type_label}</p>
                   <h3 className="mt-3 font-display text-lg font-bold leading-snug text-shuleni-navy">{resource.title}</h3>
                   <p className="mt-1 text-sm text-slate-500">{[resource.subject, resource.grade_level].filter(Boolean).join(" · ")}</p>
-                  <div className="mt-auto pt-6">
+                  <div className="mt-auto pt-5 sm:pt-6">
                     {currentUser ? (
                       <button
                         type="button"

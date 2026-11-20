@@ -35,15 +35,16 @@ const OFFERS = [
 function OfferCard({ icon: Icon, title, tagline, summary, includes, billing }) {
   return (
     <>
-      <div className="text-center">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-shuleni-aqua text-shuleni-teal ring-1 ring-shuleni-teal/15">
+      <div className="text-center md:text-left lg:text-center">
+        <span className="mx-auto flex h-16 w-16 md:mx-0 lg:mx-auto items-center justify-center rounded-2xl bg-shuleni-aqua text-shuleni-teal ring-1 ring-shuleni-teal/15">
           <Icon size={30} strokeWidth={1.75} aria-hidden="true" />
         </span>
         <h3 className="mt-6 font-display text-2xl font-extrabold text-shuleni-navy">{title}</h3>
         <p className="mt-1 text-sm font-semibold text-shuleni-teal">{tagline}</p>
-        <p className="mx-auto mt-4 max-w-xs leading-relaxed text-slate-600 lg:min-h-[4.875rem]">{summary}</p>
+        <p className="mx-auto mt-4 max-w-xs leading-relaxed text-slate-600 md:mx-0 lg:mx-auto lg:min-h-[4.875rem]">{summary}</p>
       </div>
-      <ul className="mb-8 mt-8 space-y-3 border-t border-slate-100 pt-6">
+      <div className="flex flex-1 flex-col">
+      <ul className="mb-8 mt-8 space-y-3 border-t border-slate-100 pt-6 md:mt-0 md:border-t-0 md:pt-0 lg:mt-8 lg:border-t lg:pt-6">
         {includes.map((item) => (
           <li key={item} className="flex items-start gap-3 text-slate-700">
             <Check size={18} strokeWidth={2.5} className="mt-0.5 shrink-0 text-shuleni-teal" aria-hidden="true" />
@@ -57,13 +58,14 @@ function OfferCard({ icon: Icon, title, tagline, summary, includes, billing }) {
           Explore <ArrowRight size={17} className="transition group-hover:translate-x-1" aria-hidden="true" />
         </span>
       </div>
+      </div>
     </>
   );
 }
 
 export default function Offer() {
   const cardClass =
-    "group flex flex-col rounded-3xl border border-slate-200 bg-white p-8 transition hover:-translate-y-1 hover:border-shuleni-teal/40 hover:shadow-xl hover:shadow-shuleni-navy/10 sm:p-10";
+    "group flex flex-col rounded-3xl border border-slate-200 bg-white p-6 transition md:grid md:grid-cols-2 md:items-center md:gap-10 lg:flex lg:items-stretch lg:gap-0 sm:p-8 hover:-translate-y-1 hover:border-shuleni-teal/40 hover:shadow-xl hover:shadow-shuleni-navy/10 lg:p-10";
 
   return (
     <section id="ways-to-learn" aria-labelledby="offer-heading" className="scroll-mt-16 bg-slate-50">

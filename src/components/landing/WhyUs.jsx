@@ -41,14 +41,16 @@ export default function WhyUs() {
             Whether online or at home, our tuition helps students understand, apply and excel.
           </p>
         </div>
-        <ul className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-10 grid gap-7 sm:mt-14 sm:grid-cols-2 sm:gap-10 lg:grid-cols-4">
           {REASONS.map(({ icon: Icon, title, description, tone }) => (
-            <li key={title} className="text-center">
-              <span className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl ${tone}`}>
-                <Icon size={24} aria-hidden="true" />
+            <li key={title} className="flex gap-4 sm:block sm:text-center">
+              <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl sm:mx-auto sm:h-14 sm:w-14 ${tone}`}>
+                <Icon size={22} aria-hidden="true" />
               </span>
-              <h3 className="mt-5 font-display text-lg font-bold text-shuleni-navy">{title}</h3>
-              <p className="mx-auto mt-2 max-w-xs leading-relaxed text-slate-600">{description}</p>
+              <div>
+                <h3 className="font-display text-lg font-bold text-shuleni-navy sm:mt-5">{title}</h3>
+                <p className="mt-1 leading-relaxed text-slate-600 sm:mx-auto sm:mt-2 sm:max-w-xs">{description}</p>
+              </div>
             </li>
           ))}
         </ul>

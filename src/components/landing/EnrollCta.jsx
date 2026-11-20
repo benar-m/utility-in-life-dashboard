@@ -28,14 +28,13 @@ export default function EnrollCta({ onAskAboutTrips }) {
             </a>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onAskAboutTrips}
-          className="mx-auto mt-10 flex items-center gap-2 text-sm font-semibold text-shuleni-ink/80 hover:text-shuleni-navy"
-        >
-          <Bus size={17} aria-hidden="true" /> We also run academic trips every school holiday —{" "}
-          <span className="underline underline-offset-2">ask about trips</span>
-        </button>
+        <p className="mx-auto mt-10 max-w-md text-sm font-semibold text-shuleni-ink/80">
+          <Bus size={17} className="mr-1.5 inline-block align-[-3px]" aria-hidden="true" />
+          We also run academic trips every school holiday.{" "}
+          <button type="button" onClick={onAskAboutTrips} className="underline underline-offset-2 hover:text-shuleni-navy">
+            Ask about trips
+          </button>
+        </p>
       </div>
     </section>
   );
