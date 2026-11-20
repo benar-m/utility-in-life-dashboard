@@ -72,7 +72,10 @@ export default function AcceptInvitationPage() {
                   minLength={8}
                   required
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setError("");
+                  }}
                   className={inputClassName}
                 />
               </FormField>
@@ -84,7 +87,10 @@ export default function AcceptInvitationPage() {
                   minLength={8}
                   required
                   value={confirmation}
-                  onChange={(event) => setConfirmation(event.target.value)}
+                  onChange={(event) => {
+                    setConfirmation(event.target.value);
+                    setError("");
+                  }}
                   className={inputClassName}
                 />
               </FormField>

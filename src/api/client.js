@@ -33,11 +33,22 @@ function errorMessage(payload, fallback) {
     const firstEntry = Object.entries(payload)[0];
     if (firstEntry) {
       const [field, value] = firstEntry;
-      const message = Array.isArray(value) ? value[0] : value;
-      return `${field.replaceAll("_", " ")}: ${message}`;
+      const message = firstMessage(value);
+      if (!message) return fallback;
+      // Most API messages read on their own; generic ones need the field name.
+      const needsField = /^(this field|ensure this|this value|a valid|enter a valid)/i.test(message);
+      return needsField ? `${field.replaceAll("_", " ")}: ${message}` : message;
     }
   }
   return fallback;
+}
+
+// DRF errors can be strings, lists or nested objects; return the first readable one.
+function firstMessage(value) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(firstMessage).find(Boolean) || "";
+  if (value && typeof value === "object") return Object.values(value).map(firstMessage).find(Boolean) || "";
+  return "";
 }
 
 async function ensureCsrfToken() {

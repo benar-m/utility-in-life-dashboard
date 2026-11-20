@@ -1,4 +1,5 @@
 import { Menu, Search, Bell } from "lucide-react";
+import ShuleniLogo from "../common/ShuleniLogo.jsx";
 
 /**
  * Top bar shown above the page content. Owns the mobile sidebar toggle
@@ -15,6 +16,9 @@ export default function Topbar({ onToggleSidebar }) {
       >
         <Menu size={20} />
       </button>
+
+      {/* The sidebar (and its logo) is hidden on small screens, so show the brand here. */}
+      <ShuleniLogo className="origin-left scale-90 sm:hidden" />
 
       <label className="relative hidden flex-1 max-w-md sm:block">
         <Search
@@ -36,7 +40,6 @@ export default function Topbar({ onToggleSidebar }) {
           aria-label="View notifications"
         >
           <Bell size={20} />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-shuleni-red" />
         </button>
       </div>
     </header>

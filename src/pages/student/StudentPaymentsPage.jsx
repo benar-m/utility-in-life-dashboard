@@ -8,6 +8,10 @@ import StatusBadge from "../../components/common/StatusBadge.jsx";
 import TableSkeleton from "../../components/common/TableSkeleton.jsx";
 import PaymentPromptModal from "../../components/payments/PaymentPromptModal.jsx";
 
+function dateText(value) {
+  return new Intl.DateTimeFormat("en-KE", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
+}
+
 function money(value, currency = "KES") {
   return `${currency} ${Number(value || 0).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -55,7 +59,7 @@ export default function StudentPaymentsPage() {
                 <tr key={invoice.id}>
                   <td className="px-4 py-3"><p className="font-medium text-slate-900">{invoice.number}</p><p className="text-xs text-slate-400">{invoice.class_name || "Account charge"}</p></td>
                   <td className="px-4 py-3 text-slate-600">{invoice.description}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{invoice.due_date}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{dateText(invoice.due_date)}</td>
                   <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-800">{money(invoice.amount_due, invoice.currency)}</td>
                   <td className="px-4 py-3"><StatusBadge status={invoice.status} /></td>
                   <td className="px-4 py-3 text-right"><button type="button" disabled={["PAID", "VOID"].includes(invoice.status)} onClick={() => setInvoiceToPay(invoice)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:bg-slate-100 disabled:text-slate-400"><Smartphone size={14} /> Pay</button></td>

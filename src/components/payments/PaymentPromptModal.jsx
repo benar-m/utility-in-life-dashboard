@@ -100,8 +100,8 @@ export default function PaymentPromptModal({ invoice, onClose, onCompleted }) {
             {error && <InlineAlert>{error}</InlineAlert>}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
               <Smartphone className="mx-auto text-brand-600" size={30} />
-              <p className="mt-2 font-medium text-slate-900">{attempt.mock_mode ? "Local test prompt created" : "M-Pesa prompt sent"}</p>
-              <p className="mt-1 text-sm text-slate-500">{attempt.customer_message || (attempt.mock_mode ? "Use the local test controls below to simulate a response." : "Approve the prompt on your phone. This status will update automatically.")}</p>
+              <p className="mt-2 font-medium text-slate-900">{attempt.status !== "PENDING" ? "M-Pesa prompt finished" : attempt.mock_mode ? "Local test prompt created" : "M-Pesa prompt sent"}</p>
+              {attempt.status === "PENDING" && <p className="mt-1 text-sm text-slate-500">{attempt.customer_message || (attempt.mock_mode ? "Use the local test controls below to simulate a response." : "Approve the prompt on your phone. This status will update automatically.")}</p>}
               <p className="mt-2 break-all text-xs text-slate-400">{attempt.checkout_request_id}</p>
             </div>
             {attempt.status !== "PENDING" && <InlineAlert tone={attempt.status === "SUCCEEDED" ? "success" : "error"}>Payment {attempt.status.toLowerCase()}.{attempt.result_description ? ` ${attempt.result_description}` : ""}</InlineAlert>}

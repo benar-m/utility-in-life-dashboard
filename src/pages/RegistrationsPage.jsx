@@ -56,8 +56,11 @@ export default function RegistrationsPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return registrations;
-    return registrations.filter((registration) =>
-      [registration.student_name, registration.parent_name, registration.parent_phone].join(" ").toLowerCase().includes(term)
+    const digits = term.replace(/[\s-]/g, "");
+    return registrations.filter(
+      (registration) =>
+        [registration.student_name, registration.parent_name].join(" ").toLowerCase().includes(term) ||
+        (/^\+?\d+$/.test(digits) && registration.parent_phone.includes(digits.replace(/^\+?254/, "0")))
     );
   }, [registrations, search]);
 

@@ -4,6 +4,7 @@ import { apiRequest } from "../../api/client.js";
 import FormField, { inputClassName } from "../common/FormField.jsx";
 import InlineAlert from "../common/InlineAlert.jsx";
 import Modal from "../common/Modal.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const COPY = {
   CLASS: { title: "Request a place", success: "We'll confirm the place and schedule with you." },
@@ -24,7 +25,19 @@ const emptyForm = {
 // Class place, trip enquiry or resource access. No account needed; staff follow up.
 export default function RequestModal({ request, onClose }) {
   const { service, item, notice } = request;
-  const [form, setForm] = useState(() => ({ ...emptyForm, grade_level: item?.grade_level || "" }));
+  const { currentUser } = useAuth();
+  // Signed-in users shouldn't have to retype who they are.
+  const [form, setForm] = useState(() => {
+    const [firstName = "", ...rest] = (currentUser?.full_name || "").split(" ");
+    const isNamed = currentUser?.full_name && currentUser.full_name !== currentUser.email;
+    return {
+      ...emptyForm,
+      first_name: isNamed ? firstName : "",
+      last_name: isNamed ? rest.join(" ") : "",
+      contact_email: currentUser?.email || "",
+      grade_level: item?.grade_level || "",
+    };
+  });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);

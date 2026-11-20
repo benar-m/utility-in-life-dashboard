@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import ShuleniLogo from "../components/common/ShuleniLogo.jsx";
 import { dashboardPathForRole } from "../config/navigation.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { currentUser, isCheckingSession, signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const requestedPath = location.state?.from?.pathname;
@@ -29,6 +29,10 @@ export default function LoginPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (!isCheckingSession && currentUser && !isSubmitting) {
+    return <Navigate to={requestedPath ? `${requestedPath}${requestedSearch}` : dashboardPathForRole(currentUser.role)} replace />;
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-shuleni-turquoise via-[#7FE8E0] to-shuleni-aqua px-4 py-10">

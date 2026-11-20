@@ -116,6 +116,10 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
       setError("Select a teacher and complete the academic term.");
       return;
     }
+    if (step === 1 && form.term_ends_on <= form.term_starts_on) {
+      setError("The term must end after it starts.");
+      return;
+    }
     setStep((current) => Math.min(current + 1, steps.length - 1));
   };
 
@@ -387,6 +391,7 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
           </button>
           {step < steps.length - 1 ? (
             <button
+              key="continue"
               type="button"
               onClick={nextStep}
               disabled={isLoadingOptions}
@@ -397,6 +402,7 @@ export default function ClassWizardModal({ isOpen, onClose, onCreated }) {
             </button>
           ) : (
             <button
+              key="create"
               type="submit"
               disabled={isSubmitting || isLoadingOptions}
               className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
