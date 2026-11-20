@@ -176,3 +176,23 @@ export function resultList(payload) {
 export function resourceAccess(resourceId) {
   return apiRequest(`resources/${resourceId}/access/`);
 }
+
+// Download a file from an authenticated endpoint (e.g. CSV reports) and save it.
+export async function apiDownload(path, fallbackName) {
+  let response = await fetch(apiUrl(path), {
+    credentials: "include",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  });
+  if (response.status === 401) {
+    await refreshSession();
+    response = await fetch(apiUrl(path), { credentials: "include", headers: { Authorization: `Bearer ${accessToken}` } });
+  }
+  if (!response.ok) throw new ApiError("The download could not be prepared.", response.status, null);
+  const name = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") || "")?.[1] || fallbackName;
+  const url = URL.createObjectURL(await response.blob());
+  const link = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

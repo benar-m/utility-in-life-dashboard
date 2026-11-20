@@ -10,6 +10,8 @@ import {
   Library,
   ClipboardList,
   Settings,
+  ClipboardCheck as AttendanceIcon,
+  FolderOpen,
 } from "lucide-react";
 
 
@@ -115,6 +117,20 @@ export const teacherNavigationItems = [
     icon: CalendarDays,
     description: "Your weekly teaching schedule",
   },
+  {
+    id: "attendance",
+    label: "Attendance",
+    path: "/teacher/attendance",
+    icon: AttendanceIcon,
+    description: "Mark who came to each lesson",
+  },
+  {
+    id: "resources",
+    label: "My resources",
+    path: "/teacher/resources",
+    icon: FolderOpen,
+    description: "Notes and papers for your subjects",
+  },
 ];
 
 export const studentNavigationItems = [
@@ -145,6 +161,13 @@ export const studentNavigationItems = [
     path: "/student/payments",
     icon: Wallet,
     description: "Invoices and M-Pesa receipts",
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    path: "/student/resources",
+    icon: FolderOpen,
+    description: "Notes and past papers",
   },
 ];
 

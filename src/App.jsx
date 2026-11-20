@@ -23,6 +23,9 @@ import StudentDashboardPage from "./pages/student/StudentDashboardPage.jsx";
 import StudentClassesPage from "./pages/student/StudentClassesPage.jsx";
 import PublicEnrollmentPage from "./pages/PublicEnrollmentPage.jsx";
 import StudentPaymentsPage from "./pages/student/StudentPaymentsPage.jsx";
+import StudentResourcesPage from "./pages/student/StudentResourcesPage.jsx";
+import TeacherAttendancePage from "./pages/teacher/TeacherAttendancePage.jsx";
+import TeacherResourcesPage from "./pages/teacher/TeacherResourcesPage.jsx";
 import ResourcesPage from "./pages/ResourcesPage.jsx";
 import StudentDetailPage from "./pages/StudentDetailPage.jsx";
 import ClassDetailPage from "./pages/ClassDetailPage.jsx";
@@ -70,6 +73,8 @@ export default function App() {
       >
         <Route path="/teacher" element={<TeacherDashboardPage />} />
         <Route path="/teacher/classes" element={<TeacherClassesPage />} />
+        <Route path="/teacher/attendance" element={<TeacherAttendancePage />} />
+        <Route path="/teacher/resources" element={<TeacherResourcesPage />} />
         <Route
           path="/teacher/calendar"
           element={
@@ -92,6 +97,7 @@ export default function App() {
         <Route path="/student" element={<StudentDashboardPage />} />
         <Route path="/student/classes" element={<StudentClassesPage />} />
         <Route path="/student/payments" element={<StudentPaymentsPage />} />
+        <Route path="/student/resources" element={<StudentResourcesPage />} />
         <Route
           path="/student/calendar"
           element={

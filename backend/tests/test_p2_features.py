@@ -110,13 +110,16 @@ def test_teacher_adds_resources_only_for_their_subjects(billing_data):
     }
 
     ok = teacher.post(
-        "/api/v1/portal/teacher/resources/", {**payload, "subject_id": maths.id}, format="json"
+        "/api/v1/portal/teacher/resources/",
+        {**payload, "subject_id": maths.id, "price_amount": "500"},
+        format="json",
     )
     wrong = teacher.post(
         "/api/v1/portal/teacher/resources/", {**payload, "subject_id": art.id}, format="json"
     )
 
     assert ok.status_code == 201
+    assert Resource.objects.get(title="Fractions").price_amount is None  # teachers can't price
     assert wrong.status_code == 400
     assert [
         r["title"] for r in teacher.get("/api/v1/portal/teacher/resources/").json()["results"]
@@ -279,3 +282,20 @@ def test_programs_are_managed_by_admins(billing_data):
     )
     assert created.status_code == 201
     assert [p["title"] for p in owner.get("/api/v1/programs/").json()] == ["Easter program"]
+
+
+def test_teacher_can_add_resources_for_a_subject_they_teach_a_class_in(billing_data):
+    TeacherSubject.objects.filter(teacher=billing_data["class_group"].primary_teacher).delete()
+
+    response = client_for(billing_data["teacher_user"]).post(
+        "/api/v1/portal/teacher/resources/",
+        {
+            "title": "Algebra",
+            "resource_type": "NOTES",
+            "download_url": "https://drive.example.com/a",
+            "subject_id": billing_data["class_group"].subject_id,
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201

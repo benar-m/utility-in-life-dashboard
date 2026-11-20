@@ -194,19 +194,27 @@ class TeacherResourceViewSet(viewsets.ModelViewSet):
 
     def _check_subject(self, serializer):
         subject = serializer.validated_data.get("subject")
-        teaches = TeacherSubject.objects.filter(
-            teacher=self.request.user.teacher_profile, subject=subject
-        ).exists()
+        profile = self.request.user.teacher_profile
+        # A subject counts if it's on the teacher's profile or they teach a class in it.
+        teaches = (
+            TeacherSubject.objects.filter(teacher=profile, subject=subject).exists()
+            or ClassGroup.objects.filter(primary_teacher=profile, subject=subject)
+            .exclude(status=ClassGroup.Status.ARCHIVED)
+            .exists()
+        )
         if subject is None or not teaches:
             raise ValidationError({"subject_id": "Choose one of the subjects you teach."})
 
     def perform_create(self, serializer):
         self._check_subject(serializer)
-        serializer.save(created_by=self.request.user)
+        # Pricing is an admin decision; teacher resources are free to their students.
+        serializer.validated_data.pop("price_amount", None)
+        serializer.save(created_by=self.request.user, price_amount=None)
 
     def perform_update(self, serializer):
         if "subject" in serializer.validated_data:
             self._check_subject(serializer)
+        serializer.validated_data.pop("price_amount", None)
         serializer.save()
 
 

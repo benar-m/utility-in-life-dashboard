@@ -1,6 +1,6 @@
 """Recent activity across the platform (dashboard feed + notification bell) and global search."""
 
-from django.db.models import Max, Q
+from django.db.models import Count, Max, Q
 
 from apps.academics.models import AttendanceRecord, ClassEnrollment, ClassGroup
 from apps.accounts.models import Student, TeacherProfile
@@ -75,21 +75,26 @@ def recent_activity(limit=30):
                 "link": "/resources",
             }
         )
-    lessons = (
-        AttendanceRecord.objects.values("class_group_id", "class_group__name", "lesson_date")
+    # One event per lesson day (not per class), so attendance doesn't drown out the rest.
+    days = (
+        AttendanceRecord.objects.values("lesson_date")
         .annotate(
             at=Max("recorded_at"),
-            absent=Max("id", filter=Q(status=AttendanceRecord.Status.ABSENT)),
+            lessons=Count("class_group", distinct=True),
+            absent=Count("id", filter=Q(status=AttendanceRecord.Status.ABSENT)),
         )
-        .order_by("-at")[:limit]
+        .order_by("-lesson_date")[:7]
     )
-    for lesson in lessons:
+    for day in days:
+        lessons = day["lessons"]
+        absent = day["absent"]
         events.append(
             {
                 "type": "attendance",
-                "title": f"Attendance taken: {lesson['class_group__name']}",
-                "detail": f"Lesson on {lesson['lesson_date']:%a %d %b}",
-                "at": lesson["at"],
+                "title": f"Attendance taken for {lessons} lesson{'s' if lessons != 1 else ''}",
+                "detail": f"{day['lesson_date']:%a %d %b} · "
+                + (f"{absent} absent" if absent else "everyone attended"),
+                "at": day["at"],
                 "link": "/attendance",
             }
         )

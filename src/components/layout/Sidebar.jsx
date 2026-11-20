@@ -32,7 +32,7 @@ export default function Sidebar({ isOpen, onNavigate }) {
                 <NavLink
                   to={item.path}
                   onClick={onNavigate}
-                  end={item.path === "/"}
+                  end={["/", "/dashboard", "/teacher", "/student"].includes(item.path)}
                   className={({ isActive }) =>
                     `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
                       isActive

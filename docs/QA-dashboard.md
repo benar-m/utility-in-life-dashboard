@@ -191,6 +191,22 @@ the database and covered by backend tests (139 passing). The changes:
 Also fixed along the way: class "enrolled" counts included withdrawn students (also on the public site's
 "places left"); the teacher edit dialog crashed on close; invitation emails now say Shuleni Online.
 
+**P2 is done** (20 Nov 2026), checked in the browser (desktop and 390px mobile) against a QA database
+seeded with three weeks of attendance and eight weeks of payments; 151 backend tests passing.
+
+| # | Status | What changed |
+|---|---|---|
+| Q | ✅ | Teachers take attendance (**Attendance** in the teacher portal: Present / Late / Absent / Excused, "Mark everyone present", corrections allowed, no future dates). Admin **Attendance** page: rate by day, status breakdown, rate by class, students missing the most lessons, CSV export. Dashboard "Attendance today" is real |
+| R | ✅ | Teachers add free resources for subjects they teach (**My resources**); students get a **Resources** page (for my subjects / everything, locked ones say which class unlocks them) |
+| S | ✅ | **Reports**: collections (net of refunds), outstanding by class, growth (enrollments vs registrations), how parents pay; date presets or custom range; every chart has a table view; CSV exports for payments, invoices, attendance, enrollments, registrations (spreadsheet-formula safe) |
+| T | ✅ | **Settings**: organisation details (public phone feeds the website), programs, subjects (rename / retire / merge duplicates), terms |
+| U | ✅ | Global search in the top bar (students, teachers, classes, registrations; arrow keys + Enter). Bell shows recent activity with an unread count (routine attendance doesn't ring it) |
+| V | ✅ | Dashboard home: key figures with sparklines, collections and attendance charts, a "Needs attention" list, and the recent activity feed |
+
+Charts use one validated colour-blind-safe palette, animate in once when scrolled into view (off
+for people who prefer reduced motion), and show a tooltip on hover.
+Also fixed: the portal "Dashboard" link stayed highlighted on every teacher/student page.
+
 ## Fix plan
 
 Ordered by impact on running the pilot. Sizes are rough: S ≈ under half a day, M ≈ 1–2 days, L ≈ 3+ days.
