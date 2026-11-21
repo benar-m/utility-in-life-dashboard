@@ -28,13 +28,14 @@ python manage.py createsuperuser
 
 Then start the frontend from the repository root with `npm run dev`. Its local `/api` requests are proxied to Django on port 8000, so no extra frontend environment configuration is required.
 
-For a quick local review of the student-first flow, seed a small catalogue after migrations:
+To fill the local database with a realistic term (about 70 students and their parents, 12 classes, ten weeks of attendance, monthly invoices and payments, registrations, applications and resources), run this after migrations:
 
 ```bash
-python manage.py seed_demo
+python manage.py seed          # refuses if seed data is already there
+python manage.py seed --reset  # wipe school data and rebuild; owner/admin logins are kept
 ```
 
-The public learning hub is available at `http://localhost:5173/`. The seeded owner account is `owner@utilityinlife.local` with password `Demo-password-2026!`; use it at `/login` to review the admin dashboard and **Resources** tab. The demo seed is safe to re-run and uses the default local SQLite database.
+Dates are relative to today, so the dashboard always shows recent activity. The command prints sample logins (admin, teacher, parent, student), which all use the password `Shuleni-2026!` unless you pass `--password`. Seeded emails use the reserved `.test` domain, so nothing can reach a real inbox. `--reset` refuses to run when `DEBUG` is off unless you add `--allow-production`.
 
 The integrated admin slice currently provides:
 

@@ -11,7 +11,7 @@ cd backend
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe manage.py migrate
-.\.venv\Scripts\python.exe manage.py seed_demo
+.\.venv\Scripts\python.exe manage.py seed
 .\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
 
@@ -30,10 +30,12 @@ If `npm` is unavailable, the bundled workspace fallback is:
 & "$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback\pnpm.cmd" run dev -- --host 127.0.0.1
 ```
 
-Open `http://localhost:5173/` for the public student hub. Staff can sign in at `/login` with the seeded demo account:
+Open `http://localhost:5173/` for the public student hub. Staff can sign in at `/login` with the seeded admin account:
 
-- Email: `owner@utilityinlife.local`
-- Password: `Demo-password-2026!`
+- Email: `lilian.wairimu@shulenionline.test`
+- Password: `Shuleni-2026!`
+
+`manage.py seed` also prints a teacher, parent and student login with the same password.
 
 The new **Resources** tab is available in the staff dashboard. Published resources appear in the public hub, where a learner can request access without creating a portal account first. Paid resources carry a price and create a pending access request; payment checkout remains the next integration step for this prototype slice.
 
